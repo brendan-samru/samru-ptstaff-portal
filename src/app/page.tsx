@@ -1,0 +1,191 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+
+// Helper components for icons to avoid external dependencies
+const DocumentIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#94c13c] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+);
+
+const PresentationIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#94c13c] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16 4v12l-4-2-4 2V4M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+);
+
+// Mock data for the resources
+const resources = {
+    policies: [
+        { id: 1, title: 'Employee Handbook', description: 'General policies and code of conduct.', link: '#' },
+        { id: 2, title: 'Health & Safety Policy', description: 'Protocols for workplace safety.', link: '#' },
+        { id: 3, title: 'IT & Security Guidelines', description: 'Best practices for using company equipment.', link: '#' },
+    ],
+    presentations: [
+        { id: 1, title: 'New Staff Onboarding', description: 'Orientation presentation for new hires.', link: '#' },
+        { id: 2, title: 'Customer Service Excellence', description: 'Training on providing top-tier service.', link: '#' },
+        { id: 3, title: 'Annual Review Process', description: 'How to prepare for your annual review.', link: '#' },
+    ],
+};
+
+// Main App Component
+export default function StaffPortal() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // Simulate checking for a logged-in session
+        const session = sessionStorage.getItem('isLoggedIn');
+        if (session) {
+            setIsLoggedIn(true);
+        }
+        setIsLoading(false);
+    }, []);
+
+    /**
+     * @param {React.FormEvent<HTMLFormElement>} e
+     */
+    const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        // Simple mock authentication
+        if (username === 'staff' && password === 'password') {
+            setIsLoggedIn(true);
+            sessionStorage.setItem('isLoggedIn', 'true'); // Persist session
+            setError('');
+        } else {
+            setError('Invalid username or password.');
+        }
+    };
+
+    const handleLogout = () => {
+        setIsLoggedIn(false);
+        sessionStorage.removeItem('isLoggedIn');
+        setUsername('');
+        setPassword('');
+    };
+    
+    // Loading state to prevent flash of login page if session exists
+    if (isLoading) {
+        return <div className="bg-gray-100 min-h-screen flex items-center justify-center"></div>
+    }
+
+    // LOGIN PAGE VIEW
+    if (!isLoggedIn) {
+        return (
+            <div className="bg-gray-50 min-h-screen flex flex-col items-center justify-center p-4 font-sans">
+                <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+                    <div className="flex justify-center mb-6">
+                        <img src="/SAMRU letterhead header logo.jpg" alt="SAMRU Logo" className="w-48" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-gray-800 text-center mb-2">Part-Time Staff Portal</h1>
+                    <p className="text-center text-gray-500 mb-6">Please sign in to access resources.</p>
+                    <form onSubmit={handleLogin}>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
+                                Username
+                            </label>
+                            <input
+                                id="username"
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#94c13c]"
+                                placeholder="staff"
+                            />
+                        </div>
+                        <div className="mb-6">
+                            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-[#94c13c]"
+                                placeholder="password"
+                            />
+                        </div>
+                        {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
+                        <div className="flex items-center justify-between">
+                            <button
+                                type="submit"
+                                className="bg-[#94c13c] hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline w-full transition-colors"
+                            >
+                                Sign In
+                            </button>
+                        </div>
+                         <div className="text-center mt-4">
+                            <a href="#" className="inline-block align-baseline font-bold text-sm text-[#00a99d] hover:text-teal-700 transition-colors">
+                                Don't have an account? Register
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    // PORTAL VIEW (after login)
+    return (
+        <div className="bg-gray-100 min-h-screen font-sans">
+            {/* Header */}
+            <header className="bg-white shadow-md sticky top-0 z-10">
+                <div className="container mx-auto px-6 py-3 flex justify-between items-center">
+                    <img src="/SAMRU letterhead header logo.jpg" alt="SAMRU Logo" className="h-10" />
+                    <div className="flex items-center space-x-4">
+                         <a href="https://samru.ca" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#00a99d] transition-colors">
+                            Visit samru.ca
+                        </a>
+                        <button
+                            onClick={handleLogout}
+                            className="bg-[#94c13c] hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="container mx-auto px-6 py-8">
+                <h1 className="text-4xl font-bold text-gray-800 mb-8">Staff Resources</h1>
+
+                {/* Policies Section */}
+                <section>
+                    <h2 className="text-2xl font-semibold text-gray-700 mb-1">Policies & Procedures</h2>
+                     <hr className="border-t-4 border-[#94c13c] w-24 mb-6"/>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {resources.policies.map((doc) => (
+                            <a key={doc.id} href={doc.link} className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center hover:shadow-xl hover:-translate-y-1 transition-all">
+                                <DocumentIcon />
+                                <h3 className="font-bold text-lg text-gray-800 mb-2">{doc.title}</h3>
+                                <p className="text-gray-600 text-sm">{doc.description}</p>
+                            </a>
+                        ))}
+                    </div>
+                </section>
+
+                {/* Presentations Section */}
+                <section className="mt-12">
+                     <h2 className="text-2xl font-semibold text-gray-700 mb-1">Training & Presentations</h2>
+                     <hr className="border-t-4 border-[#94c13c] w-24 mb-6"/>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                         {resources.presentations.map((doc) => (
+                            <a key={doc.id} href={doc.link} className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center hover:shadow-xl hover:-translate-y-1 transition-all">
+                                <PresentationIcon />
+                                <h3 className="font-bold text-lg text-gray-800 mb-2">{doc.title}</h3>
+                                <p className="text-gray-600 text-sm">{doc.description}</p>
+                            </a>
+                        ))}
+                    </div>
+                </section>
+            </main>
+        </div>
+    );
+}
+
