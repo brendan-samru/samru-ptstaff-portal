@@ -15,6 +15,14 @@ const PresentationIcon = () => (
     </svg>
 );
 
+const AdminIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+);
+
+
 // Mock data for the resources
 const resources = {
     policies: [
@@ -32,6 +40,7 @@ const resources = {
 // Main App Component
 export default function StaffPortal() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [userRole, setUserRole] = useState<string | null>(null);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -40,8 +49,10 @@ export default function StaffPortal() {
     useEffect(() => {
         // Simulate checking for a logged-in session
         const session = sessionStorage.getItem('isLoggedIn');
-        if (session) {
+        const role = sessionStorage.getItem('userRole');
+        if (session && role) {
             setIsLoggedIn(true);
+            setUserRole(role);
         }
         setIsLoading(false);
     }, []);
@@ -51,10 +62,19 @@ export default function StaffPortal() {
      */
     const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        // Simple mock authentication
-        if (username === 'staff' && password === 'password') {
+        // Admin user
+        if (username === 'admin' && password === 'adminpass') {
             setIsLoggedIn(true);
-            sessionStorage.setItem('isLoggedIn', 'true'); // Persist session
+            setUserRole('admin');
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('userRole', 'admin');
+            setError('');
+        // Staff user
+        } else if (username === 'staff' && password === 'password') {
+            setIsLoggedIn(true);
+            setUserRole('staff');
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('userRole', 'staff');
             setError('');
         } else {
             setError('Invalid username or password.');
@@ -63,7 +83,9 @@ export default function StaffPortal() {
 
     const handleLogout = () => {
         setIsLoggedIn(false);
+        setUserRole(null);
         sessionStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('userRole');
         setUsername('');
         setPassword('');
     };
@@ -94,7 +116,7 @@ export default function StaffPortal() {
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 className="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-[#94c13c]"
-                                placeholder="staff"
+                                placeholder="staff or admin"
                             />
                         </div>
                         <div className="mb-6">
@@ -107,7 +129,7 @@ export default function StaffPortal() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="shadow-sm appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-[#94c13c]"
-                                placeholder="password"
+                                placeholder="password or adminpass"
                             />
                         </div>
                         {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
@@ -121,7 +143,7 @@ export default function StaffPortal() {
                         </div>
                          <div className="text-center mt-4">
                             <a href="#" className="inline-block align-baseline font-bold text-sm text-[#00a99d] hover:text-teal-700 transition-colors">
-                                Don't have an account? Register
+                                Don&apos;t have an account? Register
                             </a>
                         </div>
                     </form>
@@ -154,6 +176,21 @@ export default function StaffPortal() {
             {/* Main Content */}
             <main className="container mx-auto px-6 py-8">
                 <h1 className="text-4xl font-bold text-gray-800 mb-8">Staff Resources</h1>
+                
+                {/* Admin Controls Section - Conditionally Rendered */}
+                {userRole === 'admin' && (
+                    <section className="mb-12 bg-teal-50 border-2 border-teal-200 rounded-lg p-6">
+                        <div className="flex items-center">
+                            <AdminIcon />
+                            <h2 className="text-2xl font-semibold text-gray-700">Admin Controls</h2>
+                        </div>
+                        <p className="text-gray-600 mt-2 mb-4">You are logged in as an administrator. You have access to additional controls.</p>
+                        <div className="flex space-x-4">
+                            <button className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Upload Document</button>
+                            <button className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Manage Users</button>
+                        </div>
+                    </section>
+                )}
 
                 {/* Policies Section */}
                 <section>
