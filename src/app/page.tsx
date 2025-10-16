@@ -98,7 +98,7 @@ export default function StaffPortal() {
             <div className="bg-gray-50 min-h-screen flex flex-col items-center justify-center p-4 font-sans">
                 <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
                     <div className="flex justify-center mb-6">
-                        <img src="/SAMRU letterhead header logo.jpg" alt="SAMRU Logo" className="w-48" />
+                        <img src="/SAMRULogoHCC.png.jpg" alt="SAMRU Logo" className="w-48" />
                     </div>
                     <h1 className="text-2xl font-bold text-gray-800 text-center mb-2">Part-Time Staff Portal</h1>
                     <p className="text-center text-gray-500 mb-6">Please sign in to access resources.</p>
@@ -155,7 +155,7 @@ export default function StaffPortal() {
             {/* Header */}
             <header className="bg-white shadow-md sticky top-0 z-10">
                 <div className="container mx-auto px-6 py-3 flex justify-between items-center">
-                    <img src="/SAMRU letterhead header logo.jpg" alt="SAMRU Logo" className="h-10" />
+                    <img src="/SAMRU-logo.jpg" alt="SAMRU Logo" className="h-10" />
                     <div className="flex items-center space-x-4">
                          <a href="https://samru.ca" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-[#00a99d] transition-colors">
                             Visit samru.ca
