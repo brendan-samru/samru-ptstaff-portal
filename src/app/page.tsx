@@ -57,9 +57,6 @@ export default function StaffPortal() {
         setIsLoading(false);
     }, []);
 
-    /**
-     * @param {React.FormEvent<HTMLFormElement>} e
-     */
     const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         // Admin user
