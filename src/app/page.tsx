@@ -4,13 +4,22 @@ import React, { useState, useEffect, useRef } from 'react';
 // Firebase Imports
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, QuerySnapshot, DocumentData } from 'firebase/firestore';
-import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, Unsubscribe } from 'firebase/auth';
+import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 
 
 // --- Firebase Configuration ---
+// A more specific type for the window object to satisfy TypeScript
+interface CustomWindow extends Window {
+    __firebase_config?: string;
+    __app_id?: string;
+    __initial_auth_token?: string;
+}
+declare const window: CustomWindow;
+
+
 const firebaseConfig =  JSON.parse(
-    (typeof window !== 'undefined' && (window as any).__firebase_config) || 
+    (typeof window !== 'undefined' && window.__firebase_config) || 
     '{"apiKey":"AI...","authDomain":"...","projectId":"..."}'
 );
 
@@ -71,7 +80,7 @@ export default function StaffPortal() {
         const authenticate = async () => {
             if (!auth.currentUser) {
                 try {
-                    const token = (window as any).__initial_auth_token;
+                    const token = window.__initial_auth_token;
                     if (token) await signInWithCustomToken(auth, token);
                     else await signInAnonymously(auth);
                 } catch (error) {
@@ -102,7 +111,7 @@ export default function StaffPortal() {
         }
 
         // At this point, we are authenticated and have a userId, so we can fetch data.
-        const appId = typeof (window as any).__app_id !== 'undefined' ? (window as any).__app_id : 'default-app-id';
+        const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
         const resourcesPath = `artifacts/${appId}/users/${userId}/resources`;
         const resourcesCollection = collection(db, resourcesPath);
 
@@ -162,7 +171,7 @@ export default function StaffPortal() {
         }
 
         setIsUploading(true);
-        const appId = typeof (window as any).__app_id !== 'undefined' ? (window as any).__app_id : 'default-app-id';
+        const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
         const resourcesPath = `artifacts/${appId}/users/${userId}/resources`;
         let downloadURL = editingResource?.link || '#';
         let storagePath = editingResource?.filePath || '';
@@ -210,7 +219,7 @@ export default function StaffPortal() {
         if (!userId) return;
         if (window.confirm(`Are you sure you want to delete "${resource.title}"?`)) {
             try {
-                 const appId = typeof (window as any).__app_id !== 'undefined' ? (window as any).__app_id : 'default-app-id';
+                 const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
                 // Delete Firestore document
                 const resourceDoc = doc(db, `artifacts/${appId}/users/${userId}/resources`, resource.id);
                 await deleteDoc(resourceDoc);
