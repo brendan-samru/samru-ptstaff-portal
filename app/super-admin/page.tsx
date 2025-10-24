@@ -56,7 +56,7 @@ function SuperAdminContent() {
     // For now, this can be empty since you're using mock data
     console.log('User added, refreshing data...');
   };
-  
+
   // Mock data - replace with Firebase queries
   useEffect(() => {
     // Fetch card templates
@@ -145,15 +145,29 @@ function SuperAdminContent() {
               </div>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-sm font-medium">Sign Out</span>
-          </button>
-        </div>
-      </header>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/portal')}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
+            >
+              View Portal
+            </button>
+            <button
+              onClick={() => router.push('/admin')}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
+            >
+              Manager View
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm font-medium">Sign Out</span>
+            </button>
+          </div>
+        </div>  {/* <- Make sure this closing div exists */}
+      </header>  {/* <- Make sure this closing tag exists */}
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Stats Overview */}
