@@ -1,23 +1,24 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './contexts/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
       colors: {
-        samru: {
-          'green-light': '#8BC53F',
-          'green-dark': '#65953B',
-          'blue-light': '#26A9E0',
-          'blue-dark': '#0D6537',
-        },
+        // SAMRU brand colors
+        'samru-green': '#8BC53F',
+        'samru-blue': '#26A9E0',
+        'samru-green-dark': '#65953B',
+        'samru-blue-dark': '#0D6537',
       },
       fontFamily: {
-        inter: ['Inter', 'Poppins', 'sans-serif'],      },
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
     },
   },
   plugins: [],
-};
+}
