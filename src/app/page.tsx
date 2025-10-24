@@ -92,9 +92,9 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* Large Category Cards */}
+      {/* Category Cards - 3 Column Grid */}
       <section className="max-w-7xl mx-auto px-6 pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((category) => {
             const Icon = category.icon;
             return (
@@ -104,7 +104,7 @@ export default function HomePage() {
                 className="group"
               >
                 <div className="
-                  bg-white rounded-3xl overflow-hidden
+                  bg-white rounded-2xl overflow-hidden
                   shadow-lg hover:shadow-2xl
                   transform hover:-translate-y-2
                   transition-all duration-300
@@ -112,40 +112,40 @@ export default function HomePage() {
                   h-full
                 ">
                   {/* Gradient Header with Icon */}
-                  <div className={`h-48 bg-gradient-to-br ${category.gradient} relative overflow-hidden`}>
+                  <div className={`h-36 bg-gradient-to-br ${category.gradient} relative overflow-hidden`}>
                     <div className="absolute inset-0 bg-black/5" />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="transform group-hover:scale-110 transition-transform duration-300">
-                        <Icon className="w-24 h-24 text-white/90" strokeWidth={1.5} />
+                        <Icon className="w-16 h-16 text-white/90" strokeWidth={1.5} />
                       </div>
                     </div>
                     {/* Count Badge */}
-                    <div className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full">
-                      <span className="font-bold text-gray-900" style={{ fontFamily: 'Inter, sans-serif' }}>
+                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                      <span className="font-bold text-sm text-gray-900" style={{ fontFamily: 'Inter, sans-serif' }}>
                         {category.count} items
                       </span>
                     </div>
                   </div>
 
                   {/* Content */}
-                  <div className="p-8">
+                  <div className="p-6">
                     <h2 
-                      className="text-3xl font-bold text-gray-900 mb-3 group-hover:text-[#26A9E0] transition-colors"
+                      className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#26A9E0] transition-colors"
                       style={{ fontFamily: 'Inter, sans-serif' }}
                     >
                       {category.title}
                     </h2>
                     <p 
-                      className="text-gray-600 text-lg leading-relaxed mb-4"
+                      className="text-gray-600 text-sm leading-relaxed mb-4"
                       style={{ fontFamily: 'Inter, sans-serif' }}
                     >
                       {category.description}
                     </p>
                     
                     {/* Arrow indicator */}
-                    <div className="flex items-center text-[#26A9E0] font-semibold group-hover:gap-3 gap-2 transition-all">
+                    <div className="flex items-center text-[#26A9E0] font-semibold group-hover:gap-2 gap-1 transition-all text-sm">
                       <span style={{ fontFamily: 'Inter, sans-serif' }}>Explore</span>
-                      <span className="text-xl">→</span>
+                      <span className="text-lg">→</span>
                     </div>
                   </div>
                 </div>
