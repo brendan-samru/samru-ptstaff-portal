@@ -50,6 +50,13 @@ function SuperAdminContent() {
   const [analytics, setAnalytics] = useState<PortalAnalytics[]>([]);
   const [showAddTemplate, setShowAddTemplate] = useState(false);
 
+  // ADD THIS FUNCTION:
+  const loadData = () => {
+    // Refresh data after user is added
+    // For now, this can be empty since you're using mock data
+    console.log('User added, refreshing data...');
+  };
+  
   // Mock data - replace with Firebase queries
   useEffect(() => {
     // Fetch card templates
