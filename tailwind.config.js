@@ -16,13 +16,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        ubuntu: ['Ubuntu', 'sans-serif'],
-        quicksand: ['Quicksand', 'sans-serif'],
-      },
-      backgroundImage: {
-        'gradient-samru': 'linear-gradient(135deg, #8BC53F 0%, #26A9E0 100%)',
-        'gradient-soft': 'linear-gradient(135deg, #f0fdf4 0%, #dbeafe 50%, #ffffff 100%)',
-      },
+        inter: ['Inter', 'Poppins', 'sans-serif'],      },
     },
   },
   plugins: [],
