@@ -27,15 +27,18 @@ export function ProtectedRoute({
         return;
       }
 
-      // Check role requirements
+      // Super admins have access to everything - no role check needed
+      if (userData?.role === 'super_admin') {
+        return;
+      }
+
+      // Check role requirements for non-super-admins
       if (requiredRole && userData) {
         const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
         
         if (!allowedRoles.includes(userData.role)) {
           // Redirect based on their actual role
-          if (userData.role === 'super_admin') {
-            router.push('/super-admin');
-          } else if (userData.role === 'admin') {
+          if (userData.role === 'admin') {
             router.push('/admin');
           } else {
             router.push('/portal');
@@ -64,7 +67,12 @@ export function ProtectedRoute({
     return null;
   }
 
-  // Check role requirements
+  // Super admins bypass all role checks
+  if (userData?.role === 'super_admin') {
+    return <>{children}</>;
+  }
+
+  // Check role requirements for non-super-admins
   if (requiredRole && userData) {
     const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
     if (!allowedRoles.includes(userData.role)) {
