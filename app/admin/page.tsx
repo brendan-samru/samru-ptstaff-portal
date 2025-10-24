@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { FileUpload } from '@/components/FileUpload';
+import { createContentItem, getContentByDepartment, ContentItem as ContentItemType } from '@/lib/content';
 import { 
   FileText, 
   Upload, 
@@ -17,7 +18,9 @@ import {
   Settings,
   TrendingUp,
   Users,
-  AlertCircle
+  AlertCircle,
+  Loader2,
+  CheckCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAnalytics } from '@/lib/analytics';
@@ -35,6 +38,195 @@ interface ContentItem {
   downloads: number;
   createdAt: Date;
 }
+
+interface UploadFormProps {
+  department: string;
+  createdBy: string;
+  onUploadSuccess: () => void;
+}
+
+function UploadForm({ department, createdBy, onUploadSuccess }: UploadFormProps) {
+  const [uploadedFile, setUploadedFile] = useState<{
+    url: string;
+    fileName: string;
+    fileType: string;
+  } | null>(null);
+  
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    category: 'Training & Presentations',
+    downloadable: true,
+    enabled: true
+  });
+  
+  const [saving, setSaving] = useState(false);
+
+  const handleUploadComplete = (url: string, fileName: string, fileType: string) => {
+    setUploadedFile({ url, fileName, fileType });
+    // Auto-populate title from filename
+    const titleFromFile = fileName.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
+    setFormData(prev => ({ ...prev, title: titleFromFile }));
+  };
+
+  const handleSave = async () => {
+    if (!uploadedFile) {
+      alert('Please upload a file first');
+      return;
+    }
+
+    if (!formData.title.trim()) {
+      alert('Please enter a title');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await createContentItem({
+        title: formData.title,
+        description: formData.description,
+        fileUrl: uploadedFile.url,
+        fileName: uploadedFile.fileName,
+        fileType: uploadedFile.fileType as 'video' | 'pdf' | 'document',
+        category: formData.category,
+        department: department,
+        downloadable: formData.downloadable,
+        enabled: formData.enabled,
+        createdBy: createdBy
+      });
+
+      alert('Content saved successfully!');
+      
+      // Reset form
+      setUploadedFile(null);
+      setFormData({
+        title: '',
+        description: '',
+        category: 'Training & Presentations',
+        downloadable: true,
+        enabled: true
+      });
+      
+      onUploadSuccess();
+    } catch (error) {
+      console.error('Error saving content:', error);
+      alert('Failed to save content. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* File Upload */}
+      <FileUpload
+        onUploadComplete={handleUploadComplete}
+        storagePath={`content/${department}`}
+      />
+
+      {/* Show form only after file is uploaded */}
+      {uploadedFile && (
+        <>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-green-800 font-medium mb-1">
+                  File uploaded successfully!
+                </p>
+                <p className="text-sm text-green-700">
+                  Now add details about this content below.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Content Title *
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#26A9E0] focus:border-transparent"
+                placeholder="e.g., Staff Training Video"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#26A9E0] focus:border-transparent"
+                rows={3}
+                placeholder="Brief description of the content"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <select 
+                value={formData.category}
+                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#26A9E0] focus:border-transparent"
+              >
+                <option>Training & Presentations</option>
+                <option>Health & Safety</option>
+                <option>Resources</option>
+                <option>Handbooks</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.downloadable}
+                  onChange={(e) => setFormData(prev => ({ ...prev, downloadable: e.target.checked }))}
+                  className="w-4 h-4 text-[#26A9E0] rounded focus:ring-[#26A9E0]"
+                />
+                <span className="text-sm text-gray-700">Allow downloads</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.enabled}
+                  onChange={(e) => setFormData(prev => ({ ...prev, enabled: e.target.checked }))}
+                  className="w-4 h-4 text-[#26A9E0] rounded focus:ring-[#26A9E0]"
+                />
+                <span className="text-sm text-gray-700">Enable immediately</span>
+              </label>
+            </div>
+
+            <button
+              onClick={handleSave}
+              disabled={saving || !formData.title.trim()}
+              className="w-full bg-[#8BC53F] text-white py-3 px-4 rounded-lg hover:bg-[#65953B] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Content'
+              )}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 
 function AdminDashboardContent() {
   const { userData, logout } = useAuth();
@@ -355,86 +547,14 @@ function AdminDashboardContent() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Upload New Content</h2>
                 
                 <div className="max-w-2xl">
-                  {/* Upload Component */}
-                  <FileUpload
-                    onUploadComplete={(url, fileName, fileType) => {
-                      console.log('File uploaded:', { url, fileName, fileType });
-                      // We'll add Firestore save logic next
-                      alert(`File uploaded successfully! URL: ${url}`);
+                  <UploadForm 
+                    department={userData?.department || 'general'}
+                    createdBy={userData?.uid || ''}
+                    onUploadSuccess={() => {
+                      loadData(); // Refresh content list
+                      setActiveTab('content'); // Switch to content tab
                     }}
-                    storagePath={`content/${userData?.department || 'general'}`}
                   />
-
-                  {/* Metadata Form */}
-                  <div className="mt-8 space-y-6">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex gap-3">
-                        <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm text-blue-800 font-medium mb-1">
-                            After Upload
-                          </p>
-                          <p className="text-sm text-blue-700">
-                            Once you upload a file, you'll be able to add a title, description, and category to make it easier for staff to find.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Content Title
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#26A9E0] focus:border-transparent"
-                        placeholder="e.g., Staff Training Video"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Description
-                      </label>
-                      <textarea
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#26A9E0] focus:border-transparent"
-                        rows={3}
-                        placeholder="Brief description of the content"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Category
-                      </label>
-                      <select 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#26A9E0] focus:border-transparent"
-                      >
-                        <option>Training & Presentations</option>
-                        <option>Health & Safety</option>
-                        <option>Resources</option>
-                        <option>Handbooks</option>
-                      </select>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 text-[#26A9E0] rounded focus:ring-[#26A9E0]"
-                        />
-                        <span className="text-sm text-gray-700">Allow downloads</span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          defaultChecked
-                          className="w-4 h-4 text-[#26A9E0] rounded focus:ring-[#26A9E0]"
-                        />
-                        <span className="text-sm text-gray-700">Enable immediately</span>
-                      </label>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
