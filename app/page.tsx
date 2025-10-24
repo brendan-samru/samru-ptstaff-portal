@@ -57,7 +57,7 @@ export default function HomePage() {
 
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Inter, sans-serif' }}>
               samru
@@ -66,13 +66,6 @@ export default function HomePage() {
               Staff Portal
             </div>
           </div>
-          <Link 
-            href="/admin"
-            className="px-4 py-2 bg-[#26A9E0] text-white rounded-lg hover:bg-[#0D6537] transition-colors text-sm font-medium"
-            style={{ fontFamily: 'Inter, sans-serif' }}
-          >
-            Admin Dashboard
-          </Link>
         </div>
       </header>
 
