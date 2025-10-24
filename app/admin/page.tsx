@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { FileUpload } from '@/components/FileUpload';
 import { 
   FileText, 
   Upload, 
