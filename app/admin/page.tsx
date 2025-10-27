@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAnalytics } from '@/lib/analytics';
+import ContentList from "@/components/admin/ContentList";
+import { TemplatesModal } from "@/components/admin/TemplatesModal";
 
 interface ContentItem {
   id: string;
@@ -237,6 +239,7 @@ function AdminDashboardContent() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [openTemplates, setOpenTemplates] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -352,6 +355,28 @@ function AdminDashboardContent() {
                   {userData?.department || 'Manager'} • {userData?.displayName || userData?.email}
                 </div>
               </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Your Content</h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveTab('upload')}
+                className="flex items-center gap-2 px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add Content
+              </button>
+
+              {/* New: open the template picker */}
+              <button
+                onClick={() => setOpenTemplates(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                title="Create a card from a template"
+              >
+                <FileText className="w-4 h-4" />
+                Card Template
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -642,6 +667,17 @@ function AdminDashboardContent() {
           </div>
         </div>
       </div>
+
+      <TemplatesModal
+        orgId={userData?.department || 'samru'}
+        open={openTemplates}
+        onClose={() => setOpenTemplates(false)}
+        onCreated={() => {
+          // After creating a card, refresh the list and show the Content tab
+          loadData();
+          setActiveTab('content');
+        }}
+      />
     </div>
   );
 }
@@ -651,5 +687,6 @@ export default function AdminPage() {
     <ProtectedRoute requiredRole="admin">
       <AdminDashboardContent />
     </ProtectedRoute>
+    
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { UserManagement } from '@/components/UserManagement';
+import { setUserRole } from "@/lib/portal/roles";
 import { 
   Crown, 
   FolderPlus, 
@@ -357,9 +358,46 @@ function SuperAdminContent() {
 }
 
 export default function SuperAdminPage() {
+  const [uid, setUid] = useState("");
+  const [role, setRole] = useState<"manager"|"superadmin">("manager");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!uid) return;
+    setBusy(true);
+    try {
+      await setUserRole(uid, role);
+      alert("Role set.");
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
-    <ProtectedRoute requiredRole="super_admin">
+    <div className="p-6 max-w-lg space-y-3">
+      <h1 className="text-xl font-semibold">Set User Role</h1>
+      <input
+        className="w-full border rounded px-2 py-1"
+        placeholder="Firebase UID"
+        value={uid}
+        onChange={(e) => setUid(e.target.value)}
+      />
+      <select
+        className="w-full border rounded px-2 py-1"
+        value={role}
+        onChange={(e) => setRole(e.target.value as any)}
+      >
+        <option value="manager">manager</option>
+        <option value="superadmin">superadmin</option>
+      </select>
+      <button className="px-4 py-2 rounded" onClick={submit} disabled={busy || !uid}>
+        {busy ? "Saving…" : "Save"}
+      </button>
+      <p className="text-sm text-gray-600">
+        UID: Firebase Console → Authentication → Users.
+      </p>
+      <ProtectedRoute requiredRole="super_admin">
       <SuperAdminContent />
     </ProtectedRoute>
+    </div>
   );
 }

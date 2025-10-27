@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function hasRole(role) {
+      return request.auth != null && request.auth.token.role == role;
+    }
+    function isManagerOrAbove() {
+      return request.auth != null &&
+             (request.auth.token.role in ['manager', 'superadmin']);
+    }
+
+    match /orgs/{orgId} {
+      // Templates (Super Admin only for writes)
+      match /cardTemplates/{templateId} {
+        allow read: if true; // portal visibility; tighten if needed
+        allow create, update, delete: if hasRole('superadmin');
+      }
+
+      // Cards (Managers & Super Admin)
+      match /cards/{cardId} {
+        allow read: if true; // or request.auth != null
+        allow create, update, delete: if isManagerOrAbove();
+
+        match /subcards/{subcardId} {
+          allow read: if true;
+          allow create, update, delete: if isManagerOrAbove();
+        }
+        match /files/{fileId} {
+          allow read: if true;
+          allow create, update, delete: if isManagerOrAbove();
+        }
+      }
+    }
+  }
+}

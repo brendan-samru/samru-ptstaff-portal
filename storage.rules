@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isManagerOrAbove() {
+      return request.auth != null &&
+             (request.auth.token.role in ['manager', 'superadmin']);
+    }
+
+    // Allow public reads for portal downloads; tighten if needed
+    match /orgs/{orgId}/cards/{cardId}/uploads/{allPaths=**} {
+      allow read: if true;
+      allow write: if isManagerOrAbove();
+    }
+  }
+}
