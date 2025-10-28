@@ -325,6 +325,7 @@ function SuperAdminContent() {
                       </div>
 
                       <FileUpload
+                        accept="image/*"
                         storagePath={`orgs/${orgId}/cardTemplates`}
                         onUploadComplete={(url: string, fileName: string) => {
                           setNewHero(url);
@@ -336,6 +337,34 @@ function SuperAdminContent() {
                       />
                     </div>
                   </div>
+                  <button
+                    onClick={async () => {
+                      if (!newHero) return;                 // require image
+                      setTplBusy(true);
+                      try {
+                        await createTemplate(orgId, {
+                          heroImage: newHero,               // <-- REQUIRED NOW
+                          title: newTitle || null,
+                          description: newDesc || null,
+                        });
+                        setShowAddTemplate(false);
+                        setNewTitle("");
+                        setNewDesc("");
+                        setNewHero(null);
+                        await loadTemplates();
+                      } catch (error) {
+                        console.error("Error creating template:", error);
+                        alert("Failed to create template. Please try again.");
+                      } finally {
+                        setTplBusy(false);
+                      }
+                    }}
+                    disabled={tplBusy || !newHero}
+                    className="px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors disabled:opacity-50"
+                  >
+                    {tplBusy ? "Saving…" : "Create Template"}
+                  </button>
+
 
                   <div className="space-y-4">
                     <div>
