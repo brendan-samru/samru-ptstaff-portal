@@ -102,31 +102,126 @@ function SuperAdminContent() {
     router.push('/login');
   };
 
-  // Create new template
-  const handleCreateTemplate = async () => {
-    if (!newHero) {
-      alert('Please select a template image');
-      return;
-    }
-    setTplBusy(true);
-    try {
-      await createTemplate(orgId, { 
-        heroImage: newHero,
-        title: newTitle || null, 
-        description: newDesc || null
-      });
-      setNewTitle("");
-      setNewDesc("");
-      setNewHero(null);
-      setShowAddTemplate(false);
-      await loadTemplates();
-    } catch (error) {
-      console.error('Error creating template:', error);
-      alert('Failed to create template. Please try again.');
-    } finally {
-      setTplBusy(false);
-    }
-  };
+  {/* Create New Template */}
+<div className="rounded-xl border border-gray-200 bg-white p-6 mb-6">
+  <h3 className="text-lg font-semibold mb-4">Create New Template</h3>
+
+  {/* IMAGE PREVIEW + UPLOAD (images only) */}
+  <div className="mb-4">
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Template Image *
+    </label>
+
+    <div className="grid sm:grid-cols-[160px_1fr] gap-4 items-start">
+      {/* small preview box */}
+      <div className="border rounded-lg overflow-hidden bg-white w-full h-28">
+        {newHero ? (
+          <img
+            src={newHero}
+            alt="Template preview"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full grid place-items-center text-xs text-gray-400">
+            No image
+          </div>
+        )}
+      </div>
+
+      {/* your FileUpload component */}
+      <FileUpload
+        accept="image/*"                                   // images only
+        storagePath={`orgs/${orgId}/cardTemplates`}
+        onUploadComplete={(url: string, fileName: string) => {
+          // set the hero URL so preview shows and Save button enables
+          setNewHero(url);
+
+          // optional: prefill title from filename if empty
+          if (!newTitle && fileName) {
+            const base = fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
+            setNewTitle(base);
+          }
+        }}
+      />
+    </div>
+  </div>
+
+  {/* TITLE (optional) */}
+  <div className="mb-4">
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Template Title (optional)
+    </label>
+    <input
+      type="text"
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC53F] focus:border-transparent"
+      placeholder="Optional — auto-filled from filename"
+      value={newTitle}
+      onChange={(e) => setNewTitle(e.target.value)}
+      disabled={tplBusy}
+    />
+  </div>
+
+  {/* DESCRIPTION (optional) */}
+  <div className="mb-6">
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Description (optional)
+    </label>
+    <textarea
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC53F] focus:border-transparent"
+      placeholder="Brief description of this template"
+      rows={3}
+      value={newDesc}
+      onChange={(e) => setNewDesc(e.target.value)}
+      disabled={tplBusy}
+    />
+  </div>
+
+  {/* ACTIONS — only one Create button */}
+  <div className="flex items-center justify-end gap-2">
+    <button
+      onClick={() => {
+        setShowAddTemplate(false);
+        setNewTitle("");
+        setNewDesc("");
+        setNewHero(null);
+      }}
+      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+      disabled={tplBusy}
+    >
+      Cancel
+    </button>
+
+    <button
+      onClick={async () => {
+        if (!newHero) return; // must have an image
+        setTplBusy(true);
+        try {
+          await createTemplate(orgId, {
+            heroImage: newHero,                // REQUIRED by your helper
+            title: newTitle || null,
+            description: newDesc || null,
+          });
+          // reset and refresh
+          setShowAddTemplate(false);
+          setNewTitle("");
+          setNewDesc("");
+          setNewHero(null);
+          await loadTemplates();
+        } catch (err) {
+          console.error("Error creating template:", err);
+          alert("Failed to create template. Please try again.");
+        } finally {
+          setTplBusy(false);
+        }
+      }}
+      disabled={tplBusy || !newHero}
+      className="px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors disabled:opacity-50"
+    >
+      {tplBusy ? "Saving…" : "Create Template"}
+    </button>
+  </div>
+</div>
+
 
   // Delete template
   const handleDeleteTemplate = async (id: string) => {

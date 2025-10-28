@@ -487,7 +487,7 @@ function AdminDashboardContent() {
                     {/* new: open the template picker, right next to Add Content */}
                     <button
                       onClick={() => setOpenTemplates(true)}
-                      className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
                       title="Create a card from a template"
                     >
                       <FileText className="w-4 h-4" />
