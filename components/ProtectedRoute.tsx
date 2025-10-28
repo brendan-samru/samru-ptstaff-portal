@@ -5,9 +5,17 @@ import { useRouter } from 'next/navigation';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
+// add near the top, under imports
+const normalize = (role?: string) => {
+  if (!role) return undefined;
+  return role === "superadmin" ? "super_admin" : (role as UserRole);
+};
+
+type UserRoleInput = UserRole | "superadmin";
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: UserRole | UserRole[];
+  requiredRole?: UserRoleInput | UserRoleInput[];
   redirectTo?: string;
 }
 
@@ -19,6 +27,14 @@ export function ProtectedRoute({
   const { user, userData, loading } = useAuth();
   const router = useRouter();
 
+// inside the component, after you read useAuth():
+const userRoleNorm = normalize(userData?.role);
+
+// when building allowedRoles
+const raw = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+const allowedNorm = raw.filter(Boolean).map(r => normalize(r as string)!) as UserRole[];
+
+
   useEffect(() => {
     if (!loading) {
       // Not authenticated
@@ -27,23 +43,13 @@ export function ProtectedRoute({
         return;
       }
 
-      // Super admins have access to everything - no role check needed
-      if (userData?.role === 'super_admin') {
-        return;
-      }
+      // Super admins have access to everything
+      if (userRoleNorm === "super_admin") return;
 
-      // Check role requirements for non-super-admins
-      if (requiredRole && userData) {
-        const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-        
-        if (!allowedRoles.includes(userData.role)) {
-          // Redirect based on their actual role
-          if (userData.role === 'admin') {
-            router.push('/admin');
-          } else {
-            router.push('/portal');
-          }
-        }
+      // If role is required, enforce it for non-super-admins
+      if (allowedNorm.length && userRoleNorm && !allowedNorm.includes(userRoleNorm)) {
+        if (userRoleNorm === "admin") router.push("/admin");
+        else router.push("/portal");
       }
     }
   }, [user, userData, loading, requiredRole, router, redirectTo]);
@@ -68,16 +74,11 @@ export function ProtectedRoute({
   }
 
   // Super admins bypass all role checks
-  if (userData?.role === 'super_admin') {
-    return <>{children}</>;
-  }
+  if (userRoleNorm === "super_admin") return <>{children}</>;
 
-  // Check role requirements for non-super-admins
-  if (requiredRole && userData) {
-    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    if (!allowedRoles.includes(userData.role)) {
-      return null;
-    }
+  // Check required roles for non-super-admins
+  if (allowedNorm.length && userRoleNorm && !allowedNorm.includes(userRoleNorm)) {
+    return null;
   }
 
   return <>{children}</>;

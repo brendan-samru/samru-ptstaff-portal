@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { UserManagement } from '@/components/UserManagement';
 import { setUserRole } from "@/lib/portal/roles";
-import { listTemplates, createTemplate, deleteTemplate, CardTemplate } from "@/lib/portal/templates";
+import { FileUpload } from "@/components/FileUpload";
+import { listTemplates, createTemplate, updateTemplate, deleteTemplate, CardTemplate } from "@/lib/portal/templates";
 import { 
   Crown, 
   FolderPlus, 
@@ -47,6 +47,10 @@ function SuperAdminContent() {
   const [tplBusy, setTplBusy] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
+
+  // Hero Image state
+  const [newHero, setNewHero] = useState<string | null>(null);
+  const [editing, setEditing] = useState<CardTemplate | null>(null);
 
   // Load templates from Firebase
   const loadTemplates = async () => {
@@ -274,7 +278,7 @@ function SuperAdminContent() {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">Manage Card Templates</h2>
                   <button
-                    onClick={() => setShowAddTemplate(true)}
+                    onClick={() => { setShowAddTemplate(true); setEditing(null); setNewHero(null); }}
                     className="flex items-center gap-2 px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
                   >
                     <Plus className="w-4 h-4" />
@@ -286,12 +290,14 @@ function SuperAdminContent() {
                 {showAddTemplate && (
                   <div className="mb-6 bg-gray-50 rounded-xl p-6 border border-gray-200">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-gray-900">Create New Template</h3>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        {editing ? "Edit Template" : "Create New Template"}
+                      </h3>
                       <button
                         onClick={() => {
                           setShowAddTemplate(false);
-                          setNewTitle("");
-                          setNewDesc("");
+                          setEditing(null);
+                          setNewTitle(""); setNewDesc(""); setNewHero(null);
                         }}
                         className="text-gray-400 hover:text-gray-600"
                       >
@@ -299,6 +305,26 @@ function SuperAdminContent() {
                       </button>
                     </div>
                     
+                {/* Image upload (uses your FileUpload) */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Template Image (optional)
+                    </label>
+                    <div className="grid sm:grid-cols-[160px_1fr] gap-4 items-start">
+                      <div className="border rounded-lg overflow-hidden bg-white">
+                        {newHero ? (
+                          <img src={newHero} alt="Template preview" className="w-full h-28 object-cover" />
+                        ) : (
+                          <div className="w-full h-28 grid place-items-center text-xs text-gray-400">No image</div>
+                        )}
+                      </div>
+                      <FileUpload
+                        storagePath={`orgs/${orgId}/cardTemplates`}
+                        onUploadComplete={(url) => setNewHero(url)}
+                      />
+                    </div>
+                  </div>
+
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -341,11 +367,35 @@ function SuperAdminContent() {
                           Cancel
                         </button>
                         <button
-                          onClick={handleCreateTemplate}
+                          onClick={async () => {
+                            if (!newTitle.trim()) return;
+                            setTplBusy(true);
+                            try {
+                              if (editing) {
+                                await updateTemplate(orgId, editing.id, {
+                                  title: newTitle.trim(),
+                                  description: newDesc || null,
+                                  heroImage: newHero ?? editing.heroImage ?? null,
+                                });
+                              } else {
+                                await createTemplate(orgId, {
+                                  title: newTitle.trim(),
+                                  description: newDesc || null,
+                                  heroImage: newHero ?? null,
+                                });
+                              }
+                              setEditing(null);
+                              setNewTitle(""); setNewDesc(""); setNewHero(null);
+                              setShowAddTemplate(false);
+                              await loadTemplates();
+                            } finally {
+                              setTplBusy(false);
+                            }
+                          }}
                           disabled={tplBusy || !newTitle.trim()}
-                          className="px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors disabled:opacity-50"
                         >
-                          {tplBusy ? 'Creating...' : 'Create Template'}
+                          {tplBusy ? "Saving…" : editing ? "Save Changes" : "Create Template"}
                         </button>
                       </div>
                     </div>
@@ -451,10 +501,33 @@ function SuperAdminContent() {
   );
 }
 
-export default function SuperAdminPage() {
-  return (
-    <ProtectedRoute requiredRole="super_admin">
-      <SuperAdminContent />
-    </ProtectedRoute>
-  );
+// type stays as-is or you can widen it
+export type UserRole = 'manager' | 'admin' | 'super_admin';
+
+interface ProtectedRouteProps {
+  requiredRole: UserRole | UserRole[];
+  children: React.ReactNode;
+}
+
+function normalize(role?: string): UserRole | undefined {
+  if (!role) return undefined;
+  if (role === 'superadmin') return 'super_admin'; // tolerate old spelling
+  return role as UserRole;
+}
+
+export function ProtectedRoute({ requiredRole, children }: ProtectedRouteProps) {
+  const { userData } = useAuth(); // however you get role/claims
+  const userRole = normalize(userData?.role);
+
+  const required = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+  const requiredNorm = required.map(normalize).filter(Boolean) as UserRole[];
+
+  const allowed =
+    !requiredNorm.length ||
+    requiredNorm.includes(userRole!) ||
+    // optional: super_admin inherits admin access
+    (requiredNorm.includes('admin') && userRole === 'super_admin');
+
+  if (!allowed) return <div>Access Denied</div>; // your existing behavior
+  return <>{children}</>;
 }
