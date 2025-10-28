@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { UserManagement } from '@/components/UserManagement';
 import { setUserRole } from "@/lib/portal/roles";
+import { listTemplates, createTemplate, deleteTemplate, CardTemplate } from "@/lib/portal/templates";
 import { 
   Crown, 
   FolderPlus, 
@@ -18,20 +19,10 @@ import {
   TrendingUp,
   Eye,
   Download,
-  LogOut
+  LogOut,
+  X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-interface CardTemplate {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  gradient: string;
-  enabled: boolean;
-  createdAt: Date;
-  createdBy: string;
-}
 
 interface PortalAnalytics {
   managerId: string;
@@ -47,44 +38,38 @@ function SuperAdminContent() {
   const { userData, logout } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'templates' | 'analytics' | 'users'>('templates');
-  const [cardTemplates, setCardTemplates] = useState<CardTemplate[]>([]);
   const [analytics, setAnalytics] = useState<PortalAnalytics[]>([]);
   const [showAddTemplate, setShowAddTemplate] = useState(false);
 
-  // ADD THIS FUNCTION:
+  // Template management state
+  const orgId = userData?.department || "samru";
+  const [templates, setTemplates] = useState<CardTemplate[]>([]);
+  const [tplBusy, setTplBusy] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+
+  // Load templates from Firebase
+  const loadTemplates = async () => {
+    try {
+      const rows = await listTemplates(orgId);
+      setTemplates(rows);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+    }
+  };
+
+  // Load templates on mount
+  useEffect(() => { 
+    loadTemplates(); 
+  }, [orgId]);
+
+  // Refresh data callback for user management
   const loadData = () => {
-    // Refresh data after user is added
-    // For now, this can be empty since you're using mock data
     console.log('User added, refreshing data...');
   };
 
-  // Mock data - replace with Firebase queries
+  // Mock analytics data - replace with Firebase queries
   useEffect(() => {
-    // Fetch card templates
-    setCardTemplates([
-      {
-        id: '1',
-        title: 'Training & Presentations',
-        description: 'Access training videos and onboarding materials',
-        icon: 'FileText',
-        gradient: 'from-[#8BC53F] to-[#65953B]',
-        enabled: true,
-        createdAt: new Date(),
-        createdBy: 'System'
-      },
-      {
-        id: '2',
-        title: 'Health & Safety',
-        description: 'Emergency procedures and workplace safety',
-        icon: 'HeartPulse',
-        gradient: 'from-[#26A9E0] to-[#0D6537]',
-        enabled: true,
-        createdAt: new Date(),
-        createdBy: 'System'
-      },
-    ]);
-
-    // Fetch analytics for all portals
     setAnalytics([
       {
         managerId: 'mgr1',
@@ -112,10 +97,41 @@ function SuperAdminContent() {
     router.push('/login');
   };
 
-  const handleDeleteTemplate = (id: string) => {
-    if (confirm('Are you sure you want to delete this template? This will affect all portals using it.')) {
-      setCardTemplates(prev => prev.filter(t => t.id !== id));
-      // TODO: Implement Firebase deletion
+  // Create new template
+  const handleCreateTemplate = async () => {
+    if (!newTitle.trim()) {
+      alert('Please enter a template title');
+      return;
+    }
+    setTplBusy(true);
+    try {
+      await createTemplate(orgId, { 
+        title: newTitle, 
+        description: newDesc 
+      });
+      setNewTitle("");
+      setNewDesc("");
+      setShowAddTemplate(false);
+      await loadTemplates();
+    } catch (error) {
+      console.error('Error creating template:', error);
+      alert('Failed to create template. Please try again.');
+    } finally {
+      setTplBusy(false);
+    }
+  };
+
+  // Delete template
+  const handleDeleteTemplate = async (id: string) => {
+    if (!confirm('Delete this template? This cannot be undone and will affect all portals using it.')) {
+      return;
+    }
+    try {
+      await deleteTemplate(orgId, id);
+      await loadTemplates();
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      alert('Failed to delete template. Please try again.');
     }
   };
 
@@ -167,8 +183,8 @@ function SuperAdminContent() {
               <span className="text-sm font-medium">Sign Out</span>
             </button>
           </div>
-        </div>  {/* <- Make sure this closing div exists */}
-      </header>  {/* <- Make sure this closing tag exists */}
+        </div>
+      </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Stats Overview */}
@@ -184,7 +200,7 @@ function SuperAdminContent() {
           <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <FileText className="w-8 h-8 text-[#26A9E0]" />
-              <span className="text-2xl font-bold text-gray-900">{cardTemplates.length}</span>
+              <span className="text-2xl font-bold text-gray-900">{templates.length}</span>
             </div>
             <div className="text-sm text-gray-600">Card Templates</div>
           </div>
@@ -266,42 +282,120 @@ function SuperAdminContent() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {cardTemplates.map((template) => (
-                    <div key={template.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-bold text-gray-900">{template.title}</h3>
-                            {template.enabled && (
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                                Active
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">{template.description}</p>
-                          <div className="text-xs text-gray-500">
-                            Created by {template.createdBy}
-                          </div>
-                        </div>
+                {/* Add Template Form */}
+                {showAddTemplate && (
+                  <div className="mb-6 bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">Create New Template</h3>
+                      <button
+                        onClick={() => {
+                          setShowAddTemplate(false);
+                          setNewTitle("");
+                          setNewDesc("");
+                        }}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Template Title *
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC53F] focus:border-transparent"
+                          placeholder="e.g., Training & Presentations"
+                          value={newTitle}
+                          onChange={(e) => setNewTitle(e.target.value)}
+                          disabled={tplBusy}
+                        />
                       </div>
                       
-                      <div className="flex gap-2">
-                        <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                          <Edit3 className="w-4 h-4" />
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteTemplate(template.id)}
-                          className="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description (Optional)
+                        </label>
+                        <textarea
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC53F] focus:border-transparent"
+                          placeholder="Brief description of this template's purpose"
+                          rows={3}
+                          value={newDesc}
+                          onChange={(e) => setNewDesc(e.target.value)}
+                          disabled={tplBusy}
+                        />
+                      </div>
+                      
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => {
+                            setShowAddTemplate(false);
+                            setNewTitle("");
+                            setNewDesc("");
+                          }}
+                          className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          disabled={tplBusy}
                         >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleCreateTemplate}
+                          disabled={tplBusy || !newTitle.trim()}
+                          className="px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {tplBusy ? 'Creating...' : 'Create Template'}
                         </button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* Templates Grid */}
+                {templates.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No templates created yet. Click "Add Template" to get started.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {templates.map((template) => (
+                      <div key={template.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-lg font-bold text-gray-900">{template.title}</h3>
+                              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                                Active
+                              </span>
+                            </div>
+                            {template.description && (
+                              <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+                            )}
+                            <div className="text-xs text-gray-500">
+                              Created {new Date(template.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                            <Edit3 className="w-4 h-4" />
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteTemplate(template.id)}
+                            className="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -358,46 +452,9 @@ function SuperAdminContent() {
 }
 
 export default function SuperAdminPage() {
-  const [uid, setUid] = useState("");
-  const [role, setRole] = useState<"manager"|"superadmin">("manager");
-  const [busy, setBusy] = useState(false);
-
-  const submit = async () => {
-    if (!uid) return;
-    setBusy(true);
-    try {
-      await setUserRole(uid, role);
-      alert("Role set.");
-    } finally {
-      setBusy(false);
-    }
-  };
   return (
-    <div className="p-6 max-w-lg space-y-3">
-      <h1 className="text-xl font-semibold">Set User Role</h1>
-      <input
-        className="w-full border rounded px-2 py-1"
-        placeholder="Firebase UID"
-        value={uid}
-        onChange={(e) => setUid(e.target.value)}
-      />
-      <select
-        className="w-full border rounded px-2 py-1"
-        value={role}
-        onChange={(e) => setRole(e.target.value as any)}
-      >
-        <option value="manager">manager</option>
-        <option value="superadmin">superadmin</option>
-      </select>
-      <button className="px-4 py-2 rounded" onClick={submit} disabled={busy || !uid}>
-        {busy ? "Saving…" : "Save"}
-      </button>
-      <p className="text-sm text-gray-600">
-        UID: Firebase Console → Authentication → Users.
-      </p>
-      <ProtectedRoute requiredRole="super_admin">
+    <ProtectedRoute requiredRole="super_admin">
       <SuperAdminContent />
     </ProtectedRoute>
-    </div>
   );
 }
