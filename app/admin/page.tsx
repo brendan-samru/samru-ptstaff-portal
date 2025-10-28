@@ -362,14 +362,6 @@ function AdminDashboardContent() {
 
             <div className="flex items-center gap-2">
               {/* Open the template picker (green primary) */}
-              <button
-                onClick={() => setOpenTemplates(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
-                title="Create a card from a template"
-              >
-                <FileText className="w-4 h-4" />
-                Card Template
-              </button>
             </div>
           </div>
 
@@ -446,7 +438,7 @@ function AdminDashboardContent() {
                 }`}
               >
                 <FileText className="w-4 h-4" />
-                My Content
+                Content
               </button>
               <button
                 onClick={() => setActiveTab('upload')}
@@ -480,6 +472,14 @@ function AdminDashboardContent() {
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">Your Content</h2>
+                  <button
+                onClick={() => setOpenTemplates(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
+                title="Create a card from a template"
+              >
+                <FileText className="w-4 h-4" />
+                Card Template
+              </button>                  
                   <button
                     onClick={() => setActiveTab('upload')}
                     className="flex items-center gap-2 px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
