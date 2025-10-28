@@ -470,23 +470,34 @@ function AdminDashboardContent() {
             {/* Content Tab */}
             {activeTab === 'content' && (
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Your Content</h2>
-                  <button
-                    onClick={() => setActiveTab('upload')}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Content
-                  </button>
-                  <button
-                onClick={() => setOpenTemplates(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
-                title="Create a card from a template"
-              >
-                <FileText className="w-4 h-4" />
-                Card Template
-              </button>
+                {/* My Content header */}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Your Content</h3>
+
+                  <div className="flex items-center gap-2">
+                    {/* existing Add Content button */}
+                    <button
+                      onClick={() => setActiveTab('upload')}
+                      className="flex items-center gap-2 px-3 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Content
+                    </button>
+
+                    {/* new: open the template picker, right next to Add Content */}
+                    <button
+                      onClick={() => setOpenTemplates(true)}
+                      className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      title="Create a card from a template"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Card Template
+                    </button>
+                    {/*
+                      If you want this one green too, swap className with:
+                      "flex items-center gap-2 px-3 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
+                    */}
+                  </div>
                 </div>
 
                 <div className="space-y-4">
