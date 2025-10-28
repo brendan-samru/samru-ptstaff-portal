@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserManagement } from '@/components/UserManagement';
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { setUserRole } from "@/lib/portal/roles";
 import { FileUpload } from "@/components/FileUpload";
 import { listTemplates, createTemplate, updateTemplate, deleteTemplate, CardTemplate } from "@/lib/portal/templates";
@@ -403,49 +404,60 @@ function SuperAdminContent() {
                 )}
 
                 {/* Templates Grid */}
-                {templates.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No templates created yet. Click "Add Template" to get started.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {templates.map((template) => (
-                      <div key={template.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-lg font-bold text-gray-900">{template.title}</h3>
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                                Active
-                              </span>
+                  {templates.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No templates created yet. Click "Add Template" to get started.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {templates.map((template) => {
+                        const created =
+                          (template.createdAt as any)?.toDate
+                            ? (template.createdAt as any).toDate()
+                            : template.createdAt
+                            ? new Date(template.createdAt as any)
+                            : null;
+
+                        return (
+                          <div key={template.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="text-lg font-bold text-gray-900">{template.title}</h3>
+                                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                                    Active
+                                  </span>
+                                </div>
+                                {template.description && (
+                                  <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+                                )}
+                                {created && (
+                                  <div className="text-xs text-gray-500">
+                                    Created {created.toLocaleDateString()}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            {template.description && (
-                              <p className="text-sm text-gray-600 mb-3">{template.description}</p>
-                            )}
-                            <div className="text-xs text-gray-500">
-                              Created {new Date(template.createdAt).toLocaleDateString()}
+
+                            <div className="flex gap-2">
+                              <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                                <Edit3 className="w-4 h-4" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTemplate(template.id)}
+                                className="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </button>
                             </div>
                           </div>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                            <Edit3 className="w-4 h-4" />
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteTemplate(template.id)}
-                            className="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  )}
               </div>
             )}
 
@@ -501,33 +513,10 @@ function SuperAdminContent() {
   );
 }
 
-// type stays as-is or you can widen it
-export type UserRole = 'manager' | 'admin' | 'super_admin';
-
-interface ProtectedRouteProps {
-  requiredRole: UserRole | UserRole[];
-  children: React.ReactNode;
-}
-
-function normalize(role?: string): UserRole | undefined {
-  if (!role) return undefined;
-  if (role === 'superadmin') return 'super_admin'; // tolerate old spelling
-  return role as UserRole;
-}
-
-export function ProtectedRoute({ requiredRole, children }: ProtectedRouteProps) {
-  const { userData } = useAuth(); // however you get role/claims
-  const userRole = normalize(userData?.role);
-
-  const required = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-  const requiredNorm = required.map(normalize).filter(Boolean) as UserRole[];
-
-  const allowed =
-    !requiredNorm.length ||
-    requiredNorm.includes(userRole!) ||
-    // optional: super_admin inherits admin access
-    (requiredNorm.includes('admin') && userRole === 'super_admin');
-
-  if (!allowed) return <div>Access Denied</div>; // your existing behavior
-  return <>{children}</>;
+export default function SuperAdminPage() {
+  return (
+    <ProtectedRoute requiredRole="super_admin">
+      <SuperAdminContent />
+    </ProtectedRoute>
+  );
 }
