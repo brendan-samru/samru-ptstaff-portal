@@ -104,18 +104,20 @@ function SuperAdminContent() {
 
   // Create new template
   const handleCreateTemplate = async () => {
-    if (!newTitle.trim()) {
-      alert('Please enter a template title');
+    if (!newHero) {
+      alert('Please select a template image');
       return;
     }
     setTplBusy(true);
     try {
       await createTemplate(orgId, { 
-        title: newTitle, 
-        description: newDesc 
+        heroImage: newHero,
+        title: newTitle || null, 
+        description: newDesc || null
       });
       setNewTitle("");
       setNewDesc("");
+      setNewHero(null);
       setShowAddTemplate(false);
       await loadTemplates();
     } catch (error) {
@@ -306,102 +308,106 @@ function SuperAdminContent() {
                       </button>
                     </div>
                     
-                {/* Image upload (uses your FileUpload) */}
+                {/* Image upload (images only, required) */}
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Template Image (optional)
+                      Template Image *
                     </label>
                     <div className="grid sm:grid-cols-[160px_1fr] gap-4 items-start">
                       <div className="border rounded-lg overflow-hidden bg-white">
                         {newHero ? (
                           <img src={newHero} alt="Template preview" className="w-full h-28 object-cover" />
                         ) : (
-                          <div className="w-full h-28 grid place-items-center text-xs text-gray-400">No image</div>
+                          <div className="w-full h-28 grid place-items-center text-xs text-gray-400">
+                            No image
+                          </div>
                         )}
                       </div>
+
                       <FileUpload
                         storagePath={`orgs/${orgId}/cardTemplates`}
-                        onUploadComplete={(url) => setNewHero(url)}
+                        onUploadComplete={(url: string, fileName: string) => {
+                          setNewHero(url);
+                          if (!newTitle && fileName) {
+                            const base = fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
+                            setNewTitle(base);
+                          }
+                        }}
                       />
                     </div>
                   </div>
 
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Template Title *
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC53F] focus:border-transparent"
-                          placeholder="e.g., Training & Presentations"
-                          value={newTitle}
-                          onChange={(e) => setNewTitle(e.target.value)}
-                          disabled={tplBusy}
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Description (Optional)
-                        </label>
-                        <textarea
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC53F] focus:border-transparent"
-                          placeholder="Brief description of this template's purpose"
-                          rows={3}
-                          value={newDesc}
-                          onChange={(e) => setNewDesc(e.target.value)}
-                          disabled={tplBusy}
-                        />
-                      </div>
-                      
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => {
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Template Title (optional)
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC53F] focus:border-transparent"
+                        placeholder="Optional — auto-filled from filename"
+                        value={newTitle}
+                        onChange={(e) => setNewTitle(e.target.value)}
+                        disabled={tplBusy}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description (optional)
+                      </label>
+                      <textarea
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC53F] focus:border-transparent"
+                        placeholder="Brief description of this template's purpose"
+                        rows={3}
+                        value={newDesc}
+                        onChange={(e) => setNewDesc(e.target.value)}
+                        disabled={tplBusy}
+                      />
+                    </div>
+
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => {
+                          setShowAddTemplate(false);
+                          setNewTitle("");
+                          setNewDesc("");
+                          setNewHero(null);        // <-- also clear the image
+                        }}
+                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        disabled={tplBusy}
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          if (!newHero) return;    // <-- image required
+                          setTplBusy(true);
+                          try {
+                            await createTemplate(orgId, {
+                              heroImage: newHero,                  // required
+                              title: newTitle || null,             // optional
+                              description: newDesc || null,        // optional
+                            });
                             setShowAddTemplate(false);
                             setNewTitle("");
                             setNewDesc("");
-                          }}
-                          className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                          disabled={tplBusy}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (!newTitle.trim()) return;
-                            setTplBusy(true);
-                            try {
-                              if (editing) {
-                                await updateTemplate(orgId, editing.id, {
-                                  title: newTitle.trim(),
-                                  description: newDesc || null,
-                                  heroImage: newHero ?? editing.heroImage ?? null,
-                                });
-                              } else {
-                                await createTemplate(orgId, {
-                                  title: newTitle.trim(),
-                                  description: newDesc || null,
-                                  heroImage: newHero ?? null,
-                                });
-                              }
-                              setEditing(null);
-                              setNewTitle(""); setNewDesc(""); setNewHero(null);
-                              setShowAddTemplate(false);
-                              await loadTemplates();
-                            } finally {
-                              setTplBusy(false);
-                            }
-                          }}
-                          disabled={tplBusy || !newTitle.trim()}
-                          className="px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors disabled:opacity-50"
-                        >
-                          {tplBusy ? "Saving…" : editing ? "Save Changes" : "Create Template"}
-                        </button>
-                      </div>
+                            setNewHero(null);
+                            await loadTemplates();
+                          } finally {
+                            setTplBusy(false);
+                          }
+                        }}
+                        disabled={tplBusy || !newHero}
+                        className="px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors disabled:opacity-50"
+                      >
+                        {tplBusy ? "Saving…" : "Create Template"}
+                      </button>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
                 {/* Templates Grid */}
                   {templates.length === 0 ? (

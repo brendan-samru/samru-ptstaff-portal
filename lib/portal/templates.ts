@@ -22,13 +22,15 @@ export async function listTemplates(orgId: string): Promise<CardTemplate[]> {
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
 }
 
+// tighten the type: template must have an image
 export async function createTemplate(
   orgId: string,
-  data: { title: string; description?: string | null; heroImage?: string | null }
+  data: { heroImage: string; title?: string | null; description?: string | null }
 ) {
-  return addDoc(collection(db, colPath(orgId)), {
-    title: data.title.trim(),
+  return addDoc(collection(db, `orgs/${orgId}/cardTemplates`), {
+    title: (data.title || "").trim() || null,
     description: (data.description || "").trim() || null,
+    heroImage: data.heroImage, // required
     status: "active",
     createdAt: serverTimestamp(),
     createdBy: null,
