@@ -12,7 +12,7 @@ export type CardTemplate = {
   status?: "active" | "disabled";
   heroImage?: string | null;     // NEW
   createdAt?: any;
-  createdBy?: string | null;
+  createdBy?: string | null; 
 };
 
 const colPath = (orgId: string) => `orgs/${orgId}/cardTemplates`;
