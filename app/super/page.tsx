@@ -241,7 +241,7 @@ function SuperAdminContent() {
                 onClick={() => setActiveTab('templates')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                   activeTab === 'templates'
-                    ? 'bg-[#8BC53F] text-white'
+                    ? 'bg-[#26A9E0] text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -263,7 +263,7 @@ function SuperAdminContent() {
                 onClick={() => setActiveTab('users')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                   activeTab === 'users'
-                    ? 'bg-[#65953B] text-white'
+                    ? 'bg-[#26A9E0] text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >

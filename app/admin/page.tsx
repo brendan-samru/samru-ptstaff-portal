@@ -359,19 +359,12 @@ function AdminDashboardContent() {
           </div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Your Content</h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab('upload')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Add Content
-              </button>
 
-              {/* New: open the template picker */}
+            <div className="flex items-center gap-2">
+              {/* Open the template picker (green primary) */}
               <button
                 onClick={() => setOpenTemplates(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
                 title="Create a card from a template"
               >
                 <FileText className="w-4 h-4" />
@@ -379,6 +372,7 @@ function AdminDashboardContent() {
               </button>
             </div>
           </div>
+
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push('/portal')}
@@ -447,7 +441,7 @@ function AdminDashboardContent() {
                 onClick={() => setActiveTab('content')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                   activeTab === 'content'
-                    ? 'bg-[#8BC53F] text-white'
+                    ? 'bg-[#26A9E0] text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -469,7 +463,7 @@ function AdminDashboardContent() {
                 onClick={() => setActiveTab('analytics')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                   activeTab === 'analytics'
-                    ? 'bg-[#65953B] text-white'
+                    ? 'bg-[#26A9E0] text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
