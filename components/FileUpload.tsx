@@ -7,6 +7,7 @@ import { Upload, File, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react
 
 interface FileUploadProps {
   onUploadComplete: (url: string, fileName: string, fileType: string) => void;
+  accept?: string
   acceptedTypes?: string;
   maxSizeMB?: number;
   storagePath?: string;
@@ -14,7 +15,7 @@ interface FileUploadProps {
 
 export function FileUpload({ 
   onUploadComplete, 
-  acceptedTypes = "video/*,application/pdf,.doc,.docx,.ppt,.pptx",
+  accept = "video/*,application/pdf,.doc,.docx,.ppt,.pptx",
   maxSizeMB = 100,
   storagePath = 'uploads'
 }: FileUploadProps) {
@@ -46,6 +47,11 @@ export function FileUpload({
     setUploading(true);
     setError(null);
     setProgress(0);
+
+  if (accept && !file.type.match(accept.replace("*", ".*"))) {
+  // silently ignore or show a toast
+  return;
+  }
 
     try {
       // Create unique filename
@@ -111,7 +117,7 @@ export function FileUpload({
           <input
             type="file"
             onChange={handleFileSelect}
-            accept={acceptedTypes}
+            accept={accept}
             className="hidden"
             id="file-upload"
           />
