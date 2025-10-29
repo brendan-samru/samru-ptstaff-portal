@@ -331,18 +331,17 @@ function SuperAdminContent() {
                           )}
                         </div>
 
-                        <FileUpload
-                          accept="image/*"
-                          // MODIFICATION: Pass new props using a typed-any spread to satisfy TypeScript when the component's props don't include onFileChange
-                          {...({
-                            onFileChange: (file: File, localUrl: string | null) => {
-                              setNewFile(file); // <-- Store the file
-                              setNewHero(localUrl); // <-- Store the local preview URL
-                            }
-                          } as any)}
+                        {/* Spread props as `any` so we can pass a custom callback name without TypeScript error */}
+                        <FileUpload {...({
+                          accept: "image/*",
+                          // FIX: Add types to solve implicit 'any'
+                          onFileChange: (file: File | null, localUrl: string | null) => {
+                            setNewFile(file); // <-- Store the file
+                            setNewHero(localUrl); // <-- Store the local preview URL
+                          },
                           // Pass existing image name to FileUpload when editing
-                          initialFileName={getFileNameFromUrl(editing?.heroImage)}
-                        />
+                          initialFileName: getFileNameFromUrl(editing?.heroImage),
+                        } as any)} />
                       </div>
                     </div>
                     
@@ -384,39 +383,36 @@ function SuperAdminContent() {
                           Cancel
                         </button>
 
-                        {/* MODIFICATION: This is the new Create/Save button logic.
-                          It now handles uploading AND saving.
-                        */}
                         <button
                           onClick={async () => {
                             // Check if an image exists (either a new file or an existing one)
-                              if (!newFile && !editing) {
-                                alert("Please select an image to upload.");
-                                return;
+                            if (!newFile && !editing) {
+                              alert("Please select an image to upload.");
+                              return;
+                            }
+                            
+                            setTplBusy(true);
+                            // FIX: Handle 'undefined' from editing.heroImage
+                            let uploadedUrl: string | null = editing ? (editing.heroImage || null) : null; 
+
+                            try {
+                              // --- Step 1: Upload file ONLY if a new one was selected ---
+                              if (newFile) {
+                                console.log("Uploading new file...");
+                                const timestamp = Date.now();
+                                const sanitizedName = newFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                                const fileName = `${timestamp}_${sanitizedName}`;
+                                const storageRef = ref(storage, `orgs/${orgId}/cardTemplates/${fileName}`);
+                                
+                                const uploadTask = uploadBytesResumable(storageRef, newFile);
+
+                                // Wait for upload to complete
+                                await uploadTask;
+                                
+                                // Get the final URL
+                                uploadedUrl = await getDownloadURL(storageRef);
+                                console.log("File uploaded:", uploadedUrl);
                               }
-                              
-                              setTplBusy(true);
-                              // Default to existing image URL if editing and no new file is chosen
-                              let uploadedUrl: string | null = editing?.heroImage ?? null; 
-  
-                              try {
-                                // --- Step 1: Upload file ONLY if a new one was selected ---
-                                if (newFile) {
-                                  console.log("Uploading new file...");
-                                  const timestamp = Date.now();
-                                  const sanitizedName = newFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-                                  const fileName = `${timestamp}_${sanitizedName}`;
-                                  const storageRef = ref(storage, `orgs/${orgId}/cardTemplates/${fileName}`);
-                                  
-                                  const uploadTask = uploadBytesResumable(storageRef, newFile);
-  
-                                  // Wait for upload to complete
-                                  await uploadTask;
-                                  
-                                  // Get the final URL
-                                  uploadedUrl = await getDownloadURL(storageRef);
-                                  console.log("File uploaded:", uploadedUrl);
-                                }
 
                               // --- Step 2: Check if we have a URL (new or existing) ---
                               if (!uploadedUrl) {
@@ -425,6 +421,7 @@ function SuperAdminContent() {
 
                               // --- Step 3: Save data to Firestore ---
                               console.log("Saving template to Firestore...");
+                              // FIX: Use 'undefined' instead of 'null' for compatibility with UpdateTemplate
                               const templateData = {
                                 heroImage: uploadedUrl,
                                 title: newTitle || undefined,
@@ -436,7 +433,12 @@ function SuperAdminContent() {
                                 await updateTemplate(orgId, editing.id, templateData);
                               } else {
                                 console.log("Creating new template...");
-                                await createTemplate(orgId, templateData);
+                                // createTemplate handles undefined correctly
+                                await createTemplate(orgId, {
+                                  heroImage: uploadedUrl,
+                                  title: newTitle || null, // createTemplate prefers null
+                                  description: newDesc || null,
+                                });
                               }
                               
                               // --- Step 4: Reset and reload ---
@@ -483,7 +485,7 @@ function SuperAdminContent() {
                             <div className="flex items-start justify-between mb-4">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <h3 className="text-lg font-bold text-gray-900">{template.title}</h3>
+                                  <h3 className="font-bold text-gray-900 text-lg">{template.title || "Untitled Template"}</h3>
                                   <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
                                     Active
                                   </span>
@@ -498,7 +500,10 @@ function SuperAdminContent() {
                                 )}
                               </div>
                             </div>
-
+                            {/* Image Preview in Card */}
+                            {template.heroImage && (
+                              <img src={template.heroImage} alt={template.title || ""} className="w-full h-32 object-cover rounded-lg mb-4 border border-gray-200" />
+                            )}
                             <div className="flex gap-2">
                               <button 
                                 onClick={() => {
@@ -550,28 +555,26 @@ function SuperAdminContent() {
                           <div className="text-2xl font-bold text-gray-900">{portal.totalViews}</div>
                           <div className="text-xs text-gray-600">Total Views</div>
                         </div>
-                        <div>
-                          <div className="text-2xl font-bold text-gray-900">{portal.totalDownloads}</div>
-                          <div className="text-xs text-gray-600">Downloads</div>
-                        </div>
-                        <div>
-                          <div className="text-2xl font-bold text-gray-900">{portal.uniqueUsers}</div>
-                          <div className="text-xs text-gray-600">Unique Users</div>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 pt-4 border-t border-gray-300">
-                        <div className="text-xs text-gray-500">
-                          Last activity: {portal.lastActivity.toLocaleDateString()}
-                        </div>
-                        </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Users Tab */}
+<div>
+<div className="text-2xl font-bold text-gray-900">{portal.totalDownloads}</div>
+<div className="text-xs text-gray-600">Downloads</div>
+</div>
+<div>
+<div className="text-2xl font-bold text-gray-900">{portal.uniqueUsers}</div>
+<div className="text-xs text-gray-600">Unique Users</div>
+</div>
+</div>
+<div className="mt-4 pt-4 border-t border-gray-300">
+<div className="text-xs text-gray-500">
+Last activity: {portal.lastActivity.toLocaleDateString()}
+</div>
+</div>
+</div>
+))}
+</div>
+</div>
+)}
+{/* Users Tab */}
             {activeTab === 'users' && (
               <UserManagement onUserAdded={loadData} />
             )}

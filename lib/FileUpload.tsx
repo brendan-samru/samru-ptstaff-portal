@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Upload, File, X } from 'lucide-react';
 
 interface FileUploadProps {
-  // Simplified props: Pass the file and preview URL out
+  // This interface now includes onFileChange, which will fix your error
   onFileChange: (file: File | null, localPreviewUrl: string | null) => void;
   accept?: string;
   maxSizeMB?: number;
