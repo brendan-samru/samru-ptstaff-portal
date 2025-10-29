@@ -1,151 +1,310 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Upload, File, X } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { FileUpload } from "@/components/FileUpload"; // This now uses the new component
+import { 
+  addContent, 
+  listContent, 
+  deleteContent, 
+  ContentItem 
+} from "@/lib/portal/content"; // Make sure you also created this file
+// MODIFICATION: Import storage functions
+import { storage } from '@/lib/firebase/client';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { 
+  Eye, 
+  Download, 
+  Settings,
+  Plus,
+  Trash2,
+  FileText,
+  Video,
+  File,
+  X,
+  LogOut
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-interface FileUploadProps {
-  // This interface defines onFileChange, which will fix your error
-  onFileChange: (file: File | null, localPreviewUrl: string | null) => void;
-  accept?: string;
-  maxSizeMB?: number;
-  initialFileName?: string | null;
-}
-
-export function FileUpload({ 
-  onFileChange, 
-  accept = "image/*", 
-  maxSizeMB = 100,
-  initialFileName = null,
-}: FileUploadProps) {
+function AdminContent() {
+  const { userData, logout } = useAuth();
+  const router = useRouter();
   
-  const [file, setFile] = useState<File | null>(null);
-  const [fileName, setFileName] = useState<string | null>(initialFileName);
-  const [localPreview, setLocalPreview] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const department = userData?.department || "default";
+  // FIX: Use 'department' as fallback, 'departmentName' does not exist
+  const departmentName = userData?.department || "Department Portal";
 
-  useEffect(() => {
-    if (!file) {
-      setFileName(initialFileName);
-    }
-  }, [initialFileName, file]);
+  // Portal content
+  const [content, setContent] = useState<ContentItem[]>([]);
   
-  useEffect(() => {
-    return () => {
-      if (localPreview) {
-        URL.revokeObjectURL(localPreview);
-      }
-    };
-  }, [localPreview]);
+  // Form state
+  const [showAddContent, setShowAddContent] = useState(false);
+  const [newContentTitle, setNewContentTitle] = useState("");
+  const [contentBusy, setContentBusy] = useState(false);
+  
+  // MODIFICATION: New state to hold the selected file
+  const [newFile, setNewFile] = useState<File | null>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (localPreview) {
-      URL.revokeObjectURL(localPreview);
-    }
-    
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) {
-      onFileChange(null, null);
-      return;
-    }
-
-    if (accept && !selectedFile.type.match(accept.replace("*", ".*"))) {
-      setError("Invalid file type.");
-      onFileChange(null, null);
-      return;
-    }
-
-    const sizeMB = selectedFile.size / (1024 * 1024);
-    if (sizeMB > maxSizeMB) {
-      setError(`File size exceeds ${maxSizeMB}MB limit`);
-      onFileChange(null, null);
-      return;
-    }
-
-    setFile(selectedFile);
-    setFileName(selectedFile.name);
-    setError(null);
-
-    if (selectedFile.type.startsWith('image/')) {
-      const localUrl = URL.createObjectURL(selectedFile);
-      setLocalPreview(localUrl);
-      onFileChange(selectedFile, localUrl);
-    } else {
-      onFileChange(selectedFile, null);
+  // Load content from Firebase
+  const loadContent = async () => {
+    if (!department) return;
+    try {
+      const items = await listContent(department);
+      setContent(items);
+    } catch (error) {
+      console.error('Error loading content:', error);
     }
   };
 
-  const handleRemove = () => {
-    if (localPreview) {
-      URL.revokeObjectURL(localPreview);
+  // Load content on mount
+  useEffect(() => {
+    loadContent();
+  }, [department]);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
+
+  const handleDelete = async (id: string, url: string) => {
+    if (!confirm('Are you sure you want to delete this file? This cannot be undone.')) {
+      return;
     }
-    setFile(null);
-    setFileName(null);
-    setError(null);
-    onFileChange(null, null);
+    try {
+      await deleteContent(department, id, url);
+      await loadContent();
+    } catch (error) {
+      console.error('Error deleting content:', error);
+      alert('Failed to delete file. Please try again.');
+    }
+  };
+  
+  // Helper to render file type icon
+  const FileIcon = ({ type }: { type: string }) => {
+    if (type === 'video') return <Video className="w-5 h-5 text-purple-600" />;
+    if (type === 'pdf') return <FileText className="w-5 h-5 text-red-600" />;
+    return <File className="w-5 h-5 text-blue-600" />;
   };
 
   return (
-    <div className="space-y-4">
-      {/* File Input */}
-      {!file && !fileName && (
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-[#26A9E0] transition-colors">
-          <input
-            type="file"
-            onChange={handleFileSelect}
-            accept={accept}
-            className="hidden"
-            id="file-upload"
-          />
-          <label
-            htmlFor="file-upload"
-            className="cursor-pointer flex flex-col items-center gap-3"
-          >
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-              <Upload className="w-8 h-8 text-gray-400" />
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <div>
-              <p className="text-gray-700 font-medium mb-1">
-                Click to upload or drag and drop
-              </p>
-              <p className="text-sm text-gray-500">
-                Videos, PDFs, Documents (max {maxSizeMB}MB)
-              </p>
-            </div>
-          </label>
-        </div>
-      )}
-
-      {/* Selected File */}
-      {(file || fileName) && (
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-10 h-10 bg-[#8BC53F] rounded-lg flex items-center justify-center flex-shrink-0">
-                <File className="w-5 h-5 text-white" />
+              <div className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Inter, sans-serif' }}>
+                {departmentName}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">{fileName}</p>
-                {file && (
-                  <p className="text-sm text-gray-500">
-                    {(file.size / (1024 * 1024)).toFixed(2)} MB
-                  </p>
-                )}
+              <div className="text-xs text-gray-600" style={{ fontFamily: 'Inter, sans-serif' }}>
+                Manager View
               </div>
             </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {userData?.role === 'super_admin' && (
+              <button
+                onClick={() => router.push('/super-admin')}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
+              >
+                Super Admin
+              </button>
+            )}
             <button
-              onClick={handleRemove}
-              className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              onClick={() => router.push('/portal')}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
             >
-              <X className="w-4 h-4 text-gray-600" />
+              View Portal
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm font-medium">Sign Out</span>
             </button>
           </div>
         </div>
-      )}
+      </header>
       
-      {/* Error Message */}
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
+      {/* Content Area */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Add Content Modal */}
+        {showAddContent && (
+          <div className="mb-6 bg-white rounded-xl p-6 border border-gray-200 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                Upload New Content
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAddContent(false);
+                  setNewContentTitle("");
+                  setNewFile(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Title Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Content Title (optional)
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC53F] focus:border-transparent"
+                  placeholder="Optional — uses filename if blank"
+                  value={newContentTitle}
+                  onChange={(e) => setNewContentTitle(e.target.value)}
+                  disabled={contentBusy}
+                />
+              </div>
+
+              {/* MODIFICATION: FileUpload component updated to use onFileChange */}
+              <FileUpload
+                accept="video/*,application/pdf,.doc,.docx,.ppt,.pptx"
+                maxSizeMB={100}
+                // Add types to fix implicit 'any' error
+                onFileChange={(file: File | null, localUrl: string | null) => {
+                  setNewFile(file);
+                  // This page doesn't have a preview box, so localUrl isn't used
+                }}
+                initialFileName={null}
+              />
+
+              {/* MODIFICATION: Added Save/Cancel buttons */}
+              <div className="flex gap-2 justify-end mt-6">
+                <button
+                  onClick={() => {
+                    setShowAddContent(false);
+                    setNewFile(null);
+                    setNewContentTitle("");
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  disabled={contentBusy}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    // This is the new save logic
+                    if (!newFile) {
+                      alert("Please select a file to upload.");
+                      return;
+                    }
+                    
+                    setContentBusy(true);
+
+                    try {
+                      // --- Step 1: Upload file ---
+                      const timestamp = Date.now();
+                      const sanitizedName = newFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                      const fileName = `${timestamp}_${sanitizedName}`;
+                      const storageRef = ref(storage, `content/${department}/${fileName}`);
+                      
+                      const uploadTask = uploadBytesResumable(storageRef, newFile);
+                      await uploadTask;
+                      const downloadURL = await getDownloadURL(storageRef);
+
+                      // --- Step 2: Determine file type ---
+                      const fileType = newFile.type.startsWith('video/') ? 'video' 
+                        : newFile.type === 'application/pdf' ? 'pdf' 
+                        : 'document';
+                      
+                      // --- Step 3: Save to Firestore ---
+                      await addContent(department, {
+                        url: downloadURL,
+                        title: newContentTitle || newFile.name,
+                        type: fileType,
+                      });
+
+                      // --- Step 4: Reset and reload ---
+                      setShowAddContent(false);
+                      setNewFile(null);
+                      setNewContentTitle("");
+                      await loadContent();
+
+                    } catch (err) {
+                      console.error("Error uploading content:", err);
+                      alert("Failed to upload content. Please try again.");
+                    } finally {
+                      setContentBusy(false);
+                    }
+                  }}
+                  disabled={contentBusy || !newFile}
+                  className="px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors disabled:opacity-50"
+                >
+                  {contentBusy ? "Saving…" : "Save Content"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Content List */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-900">Manage Content</h2>
+            <button
+              onClick={() => setShowAddContent(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-[#8BC53F] text-white rounded-lg hover:bg-[#65953B] transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Upload Content
+            </button>
+          </div>
+          
+          <div className="p-6">
+            {content.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No content uploaded yet. Click "Upload Content" to get started.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {content.map((item) => (
+                  <div key={item.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <FileIcon type={item.type} />
+                      <span className="font-medium text-gray-800">{item.title}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a 
+                        href={item.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                      >
+                        <Download className="w-4 h-4" />
+                        View
+                      </a>
+                      <button
+                        onClick={() => handleDelete(item.id, item.url)}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <ProtectedRoute requiredRole="admin">
+      <AdminContent />
+    </ProtectedRoute>
   );
 }
