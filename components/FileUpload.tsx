@@ -1,118 +1,99 @@
 'use client';
 
-import { useState } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
-import { Upload, File, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Upload, File, X } from 'lucide-react';
 
 interface FileUploadProps {
-  onUploadComplete: (url: string, fileName: string, fileType: string) => void;
-  accept?: string
-  acceptedTypes?: string;
+  // This interface now includes onFileChange, which will fix your error
+  onFileChange: (file: File | null, localPreviewUrl: string | null) => void;
+  accept?: string;
   maxSizeMB?: number;
-  storagePath?: string;
+  // Prop to show an existing file's name when editing
+  initialFileName?: string | null;
 }
 
 export function FileUpload({ 
-  onUploadComplete, 
-  accept = "video/*,application/pdf,.doc,.docx,.ppt,.pptx",
+  onFileChange, 
+  accept = "image/*", // Defaulting to image/* as per your page
   maxSizeMB = 100,
-  storagePath = 'uploads'
+  initialFileName = null,
 }: FileUploadProps) {
+  
   const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [fileName, setFileName] = useState<string | null>(initialFileName);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+
+  // Update internal name when initialFileName prop changes (for editing)
+  useEffect(() => {
+    if (!file) { // Only update if no new file is selected
+      setFileName(initialFileName);
+    }
+  }, [initialFileName, file]);
+  
+  // Cleanup local preview URL on unmount or file change
+  useEffect(() => {
+    return () => {
+      if (localPreview) {
+        URL.revokeObjectURL(localPreview);
+      }
+    };
+  }, [localPreview]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (localPreview) {
+      URL.revokeObjectURL(localPreview);
+    }
+    
     const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      onFileChange(null, null);
+      return;
+    }
+
+    // Check file type
+    if (accept && !selectedFile.type.match(accept.replace("*", ".*"))) {
+      setError("Invalid file type.");
+      onFileChange(null, null);
+      return;
+    }
 
     // Check file size
     const sizeMB = selectedFile.size / (1024 * 1024);
     if (sizeMB > maxSizeMB) {
       setError(`File size exceeds ${maxSizeMB}MB limit`);
+      onFileChange(null, null);
       return;
     }
 
     setFile(selectedFile);
+    setFileName(selectedFile.name); // Set the new file name
     setError(null);
-    setSuccess(false);
-  };
 
-  const handleUpload = async () => {
-    if (!file) return;
-
-    setUploading(true);
-    setError(null);
-    setProgress(0);
-
-  if (accept && !file.type.match(accept.replace("*", ".*"))) {
-  // silently ignore or show a toast
-  return;
-  }
-
-    try {
-      // Create unique filename
-      const timestamp = Date.now();
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const fileName = `${timestamp}_${sanitizedName}`;
-      const storageRef = ref(storage, `${storagePath}/${fileName}`);
-
-      // Upload file
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(Math.round(progress));
-        },
-        (error) => {
-          console.error('Upload error:', error);
-          setError('Upload failed. Please try again.');
-          setUploading(false);
-        },
-        async () => {
-          // Upload complete
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          setSuccess(true);
-          setUploading(false);
-          
-          // Determine file type
-          const fileType = file.type.startsWith('video/') ? 'video' 
-            : file.type === 'application/pdf' ? 'pdf' 
-            : 'document';
-          
-          onUploadComplete(downloadURL, file.name, fileType);
-          
-          // Reset after 2 seconds
-          setTimeout(() => {
-            setFile(null);
-            setSuccess(false);
-            setProgress(0);
-          }, 2000);
-        }
-      );
-    } catch (err) {
-      console.error('Upload error:', err);
-      setError('Failed to upload file');
-      setUploading(false);
+    // Create local preview if it's an image
+    if (selectedFile.type.startsWith('image/')) {
+      const localUrl = URL.createObjectURL(selectedFile);
+      setLocalPreview(localUrl);
+      onFileChange(selectedFile, localUrl); // Pass file AND local URL
+    } else {
+      onFileChange(selectedFile, null); // Pass file but no preview
     }
   };
 
   const handleRemove = () => {
+    if (localPreview) {
+      URL.revokeObjectURL(localPreview);
+    }
     setFile(null);
+    setFileName(null); // Clear the name
     setError(null);
-    setSuccess(false);
-    setProgress(0);
+    onFileChange(null, null); // Tell parent to clear
   };
 
   return (
     <div className="space-y-4">
       {/* File Input */}
-      {!file && (
+      {!file && !fileName && (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-[#26A9E0] transition-colors">
           <input
             type="file"
@@ -133,7 +114,7 @@ export function FileUpload({
                 Click to upload or drag and drop
               </p>
               <p className="text-sm text-gray-500">
-                Videos, PDFs, Documents (max {maxSizeMB}MB)
+                Images only (max {maxSizeMB}MB)
               </p>
             </div>
           </label>
@@ -141,84 +122,35 @@ export function FileUpload({
       )}
 
       {/* Selected File */}
-      {file && !success && (
+      {(file || fileName) && (
         <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="w-10 h-10 bg-[#8BC53F] rounded-lg flex items-center justify-center flex-shrink-0">
                 <File className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">{file.name}</p>
-                <p className="text-sm text-gray-500">
-                  {(file.size / (1024 * 1024)).toFixed(2)} MB
-                </p>
+                <p className="font-medium text-gray-900 truncate">{fileName}</p>
+                {file && ( // Only show size for newly selected files
+                  <p className="text-sm text-gray-500">
+                    {(file.size / (1024 * 1024)).toFixed(2)} MB
+                  </p>
+                )}
               </div>
             </div>
-            {!uploading && (
-              <button
-                onClick={handleRemove}
-                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-600" />
-              </button>
-            )}
-          </div>
-
-          {/* Progress Bar */}
-          {uploading && (
-            <div className="mb-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600">Uploading...</span>
-                <span className="text-sm font-medium text-[#26A9E0]">{progress}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-[#26A9E0] h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {error && (
-            <div className="flex items-center gap-2 text-red-600 text-sm mb-3">
-              <AlertCircle className="w-4 h-4" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Upload Button */}
-          {!uploading && (
             <button
-              onClick={handleUpload}
-              disabled={uploading}
-              className="w-full bg-[#8BC53F] text-white py-2 px-4 rounded-lg hover:bg-[#65953B] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleRemove}
+              className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
             >
-              Upload File
+              <X className="w-4 h-4 text-gray-600" />
             </button>
-          )}
-
-          {/* Uploading State */}
-          {uploading && (
-            <div className="flex items-center justify-center gap-2 py-2">
-              <Loader2 className="w-5 h-5 text-[#26A9E0] animate-spin" />
-              <span className="text-gray-600">Uploading...</span>
-            </div>
-          )}
+          </div>
         </div>
       )}
-
-      {/* Success State */}
-      {success && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-          <CheckCircle className="w-6 h-6 text-green-600" />
-          <div>
-            <p className="font-medium text-green-900">Upload successful!</p>
-            <p className="text-sm text-green-700">File has been uploaded</p>
-          </div>
-        </div>
+      
+      {/* Error Message */}
+      {error && (
+        <p className="text-sm text-red-600">{error}</p>
       )}
     </div>
   );
