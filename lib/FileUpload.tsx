@@ -114,7 +114,7 @@ export function FileUpload({
                 Click to upload or drag and drop
               </p>
               <p className="text-sm text-gray-500">
-                Images only (max {maxSizeMB}MB)
+                Videos, PDFs, Documents (max {maxSizeMB}MB)
               </p>
             </div>
           </label>
