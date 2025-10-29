@@ -499,7 +499,7 @@ function SuperAdminContent() {
                             </div>
                             {/* Image Preview in Card */}
                             {template.heroImage && (
-                              <img src={template.heroImage} alt={template.title || ""} className="w-full h-32 object-cover rounded-lg mb-4 border border-gray-200" />
+                              <img src={template.heroImage} alt={template.title || ""} className="w-full h-64 object-cover rounded-lg mb-4 border border-gray-200" />
                             )}
                             <div className="flex gap-2">
                               <button 
