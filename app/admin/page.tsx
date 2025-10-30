@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { LogOut, Plus, FileText } from 'lucide-react';
 
 // Import the new components and functions
-import { ContentList } from '@/components/ContentList'; // Use the component you provided
+import { ContentList } from '@/components/ContentList'; // Use the component provided
 import { TemplatesModal } from '@/components/TemplatesModal'; // Use the component you provided
 import { listCards, Card } from '@/lib/portal/cards'; // Use the functions we just added
 

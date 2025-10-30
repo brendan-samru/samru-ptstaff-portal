@@ -56,7 +56,7 @@ export async function disableCard(orgId: string, cardId: string) {
 
 /**
  * Soft delete (recommended): sets deleted=true and hides from UI/rules.
- * Pass { hard: true } if you truly want to remove the doc and its uploads.
+ * Pass { hard: true } if you really want to remove the doc and its uploads.
  */
 export async function deleteCard(
   orgId: string,
