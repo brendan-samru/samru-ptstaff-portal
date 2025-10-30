@@ -1,40 +1,6 @@
 import { db, storage } from "@/lib/firebase/client";
-import { 
-  addDoc, 
-  deleteDoc, 
-  updateDoc, 
-  collection, 
-  doc, 
-  getDoc, 
-  serverTimestamp,
-  query,
-  where,
-  getDocs // Import new functions
-} from "firebase/firestore";
+import { addDoc, deleteDoc, updateDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { ref, listAll, deleteObject, uploadBytesResumable } from "firebase/storage";
-
-// NEW: Exporting the Card type
-export type Card = {
-  id: string;
-  title: string | null;
-  description?: string | null;
-  heroImage?: string | null;
-  labelCount?: number;
-  status?: "live" | "disabled" | "draft";
-  lastUpdated?: any;
-  templateId?: string;
-  deleted?: boolean;
-};
-
-// NEW: Function to list cards for a department
-export async function listCards(orgId: string): Promise<Card[]> {
-  const cardsRef = collection(db, `orgs/${orgId}/cards`);
-  // Query to get cards that are NOT marked as deleted
-  const q = query(cardsRef, where("deleted", "!=", true)); 
-  
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
-}
 
 export async function createCardFromTemplate(orgId: string, templateId: string) {
   const t = (await getDoc(doc(db, `orgs/${orgId}/cardTemplates/${templateId}`))).data()!;
