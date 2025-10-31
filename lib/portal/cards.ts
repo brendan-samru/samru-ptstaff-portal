@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { ref, listAll, deleteObject, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
-// Card type (top-level card)
+// Card type (top-level card) - Complete
 export type Card = {
   id: string;
   title: string | null;
@@ -47,13 +47,19 @@ export type SubCard = {
 
 // --- Top-Level Card Functions ---
 
-export async function listCards(orgId: string): Promise<Card[]> {
+// Fetches *all* non-deleted cards (draft & active) for the admin page
+export async function listAllCards(orgId: string): Promise<Card[]> {
   const cardsRef = collection(db, `orgs/${orgId}/cards`);
-  const q = query(cardsRef, where("deleted", "==", false)); 
+  const q = query(
+    cardsRef, 
+    where("deleted", "==", false),
+    where("status", "in", ["active", "draft", "live"]) // Show active, draft, and old "live" cards
+  ); 
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
 }
 
+// Fetches *only* active cards for the staff portal
 export async function listActiveCards(orgId: string): Promise<Card[]> {
   const col = collection(db, `orgs/${orgId}/cards`);
   const q = query(col, 
@@ -64,6 +70,7 @@ export async function listActiveCards(orgId: string): Promise<Card[]> {
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Card, "id">) }));
 }
 
+// Creates a new card from a template, status defaults to "draft"
 export async function createCardFromTemplate(orgId: string, templateId: string) {
   const masterTemplateOrg = "samru";
   const t = (await getDoc(doc(db, `orgs/${masterTemplateOrg}/cardTemplates/${templateId}`))).data()!;
@@ -73,7 +80,7 @@ export async function createCardFromTemplate(orgId: string, templateId: string) 
     labelCount: 0, 
     templateId,
     deleted: false,
-    status: "active",
+    status: "draft", // Default to "draft"
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     lastUpdated: serverTimestamp(),
@@ -81,45 +88,29 @@ export async function createCardFromTemplate(orgId: string, templateId: string) 
   return refDoc.id;
 }
 
+// Soft-deletes a card
 export async function deleteCard(orgId: string, cardId: string) {
   const cardRef = doc(db, `orgs/${orgId}/cards/${cardId}`);
   await updateDoc(cardRef, {
     deleted: true,
     deletedAt: serverTimestamp(),
-    status: "disabled",
+    status: "disabled", // or "archived"
     updatedAt: serverTimestamp(),
     lastUpdated: serverTimestamp(),
   });
 }
 
-export async function updateCardDesc(orgId: string, cardId: string, description: string) {
-  await updateDoc(doc(db, `orgs/${orgId}/cards/${cardId}`), {
-    description, 
+// Publish/Unpublish function
+export async function updateCardStatus(
+  orgId: string, 
+  cardId: string, 
+  status: "active" | "draft"
+) {
+  const ref = doc(db, `orgs/${orgId}/cards/${cardId}`);
+  await updateDoc(ref, {
+    status: status,
     updatedAt: serverTimestamp(),
     lastUpdated: serverTimestamp(),
-  });
-}
-
-// --- Disable / Enable Helpers ---
-
-export async function disableCard(orgId: string, cardId: string, by?: string, reason?: string) {
-  const ref = doc(db, `orgs/${orgId}/cards/${cardId}`);
-  await updateDoc(ref, {
-    status: "disabled",
-    disabledAt: serverTimestamp(),
-    disabledBy: by ?? "system",
-    disabledReason: reason ?? null,
-    updatedAt: serverTimestamp(),
-  });
-}
-
-export async function enableCard(orgId: string, cardId: string, by?: string) {
-  const ref = doc(db, `orgs/${orgId}/cards/${cardId}`);
-  await updateDoc(ref, {
-    status: "active",
-    enabledAt: serverTimestamp(),
-    enabledBy: by ?? "system",
-    updatedAt: serverTimestamp(),
   });
 }
 
@@ -128,14 +119,14 @@ export async function enableCard(orgId: string, cardId: string, by?: string) {
 const subContentCollection = (orgId: string, cardId: string) => 
   collection(db, `orgs/${orgId}/cards/${cardId}/subcards`);
 
+// Lists all sub-content (files and subcards)
 export async function listSubContent(orgId: string, cardId: string): Promise<SubCard[]> {
   const snap = await getDocs(subContentCollection(orgId, cardId));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
 }
 
-// MODIFICATION: This function now creates a 'file' type document
+// Uploads a file and creates a 'file' type document
 export async function uploadToCard(orgId: string, cardId: string, file: File) {
-  // 1. Upload the file
   const key = crypto.randomUUID();
   const path = `orgs/${orgId}/cards/${cardId}/uploads/${key}/${file.name}`;
   const storageRef = ref(storage, path);
@@ -143,8 +134,6 @@ export async function uploadToCard(orgId: string, cardId: string, file: File) {
   await new Promise<void>((res, rej) => task.on("state_changed", undefined, rej, () => res()));
   const downloadURL = await getDownloadURL(storageRef);
 
-  // --- THIS IS THE FIX ---
-  // 2. Determine file type, now with 'image'
   const fileType = file.type.startsWith('image/') ? 'image' 
     : file.type.startsWith('video/') ? 'video' 
     : file.type.includes('pdf') ? 'pdf' 
@@ -152,9 +141,7 @@ export async function uploadToCard(orgId: string, cardId: string, file: File) {
     : file.type.includes('sheet') ? 'xls'
     : file.type.includes('document') ? 'doc'
     : 'file';
-  // --- END OF FIX ---
 
-  // 3. Create the 'file' document in the subcards collection
   await addDoc(subContentCollection(orgId, cardId), {
     type: 'file',
     title: file.name,
@@ -163,14 +150,13 @@ export async function uploadToCard(orgId: string, cardId: string, file: File) {
     createdAt: serverTimestamp(),
   });
 
-  // 4. Update parent card timestamp
   await updateDoc(doc(db, `orgs/${orgId}/cards/${cardId}`), {
     updatedAt: serverTimestamp(),
     lastUpdated: serverTimestamp()
   });
 }
 
-// This function now creates a 'subcard' type document
+// Creates a 'subcard' type document
 export async function createSubCard(
   orgId: string, 
   cardId: string, 
@@ -196,23 +182,19 @@ export async function createSubCard(
   };
   await addDoc(subContentCollection(orgId, cardId), subCardData);
 
-  // Update parent card timestamp
   await updateDoc(doc(db, `orgs/${orgId}/cards/${cardId}`), {
     updatedAt: serverTimestamp(),
     lastUpdated: serverTimestamp()
   });
 }
 
-// Renamed and updated to handle file/image deletion
+// Deletes any sub-content (file or subcard)
 export async function deleteSubContent(
   orgId: string, 
   cardId: string, 
   subCard: SubCard
 ) {
-  // 1. Delete the Firestore document
   await deleteDoc(doc(db, `orgs/${orgId}/cards/${cardId}/subcards/${subCard.id}`));
-
-  // 2. Determine which URL to delete from Storage
   const urlToDelete = subCard.type === 'file' ? subCard.fileUrl : subCard.heroImage;
 
   if (urlToDelete) {
