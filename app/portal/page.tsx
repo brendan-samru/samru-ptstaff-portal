@@ -81,8 +81,10 @@ function PortalHomeContent() {
 
 
   useEffect(() => {
-    // Track portal home page view
-    if (userData) {
+    // --- THIS IS THE FIX ---
+    // Track portal home page view, but only if department is loaded
+    if (userData && userData.department) {
+    // --- END OF FIX ---
       trackView(
         userData.uid,
         userData.role,
@@ -95,7 +97,10 @@ function PortalHomeContent() {
 
   // Fetch real cards from Firestore
   useEffect(() => {
-    if (!orgId) return; // Wait for user data
+    if (!orgId || orgId === "default") { // Don't load if orgId is still the default
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     listActiveCards(orgId) // Only fetches active cards for this org

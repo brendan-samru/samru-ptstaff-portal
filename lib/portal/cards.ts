@@ -114,6 +114,38 @@ export async function updateCardStatus(
   });
 }
 
+// --- ADDED THIS FUNCTION BACK ---
+export async function updateCardDesc(orgId: string, cardId: string, description: string) {
+  await updateDoc(doc(db, `orgs/${orgId}/cards/${cardId}`), {
+    description, 
+    updatedAt: serverTimestamp(),
+    lastUpdated: serverTimestamp(),
+  });
+}
+
+// --- ADDED THESE FUNCTIONS BACK ---
+export async function disableCard(orgId: string, cardId: string, by?: string, reason?: string) {
+  const ref = doc(db, `orgs/${orgId}/cards/${cardId}`);
+  await updateDoc(ref, {
+    status: "disabled",
+    disabledAt: serverTimestamp(),
+    disabledBy: by ?? "system",
+    disabledReason: reason ?? null,
+    updatedAt: serverTimestamp(),
+  });
+}
+export async function enableCard(orgId: string, cardId: string, by?: string) {
+  const ref = doc(db, `orgs/${orgId}/cards/${cardId}`);
+  await updateDoc(ref, {
+    status: "active",
+    enabledAt: serverTimestamp(),
+    enabledBy: by ?? "system",
+    updatedAt: serverTimestamp(),
+  });
+}
+// --- END OF ADDED FUNCTIONS ---
+
+
 // --- Sub-Content Functions ---
 
 const subContentCollection = (orgId: string, cardId: string) => 
@@ -134,6 +166,7 @@ export async function uploadToCard(orgId: string, cardId: string, file: File) {
   await new Promise<void>((res, rej) => task.on("state_changed", undefined, rej, () => res()));
   const downloadURL = await getDownloadURL(storageRef);
 
+  // Correctly tag 'image' file types
   const fileType = file.type.startsWith('image/') ? 'image' 
     : file.type.startsWith('video/') ? 'video' 
     : file.type.includes('pdf') ? 'pdf' 
