@@ -13,17 +13,17 @@ import {
 } from "firebase/firestore";
 import { ref, listAll, deleteObject, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
-// MODIFICATION: Merged Card type with new status and timestamps
+// Card type (top-level card)
 export type Card = {
   id: string;
   title: string | null;
   description?: string | null;
   heroImage?: string | null;
   labelCount?: number;
-  status?: "active" | "disabled" | "archived" | "draft" | "live"; // Merged statuses
+  status?: "active" | "disabled" | "archived" | "draft" | "live";
   lastUpdated?: any;
-  updatedAt?: any; // Added
-  createdAt?: any; // Added
+  updatedAt?: any;
+  createdAt?: any;
   templateId?: string;
   deleted?: boolean;
   disabledAt?: any;
@@ -33,18 +33,20 @@ export type Card = {
   enabledBy?: string;
 };
 
-// SubCard type (unchanged)
+// MODIFICATION: SubCard type now includes type and fileUrl
 export type SubCard = {
   id: string;
+  type: 'subcard' | 'file'; // Distinguish between a subcard and a simple file
   title: string;
   description?: string | null;
-  heroImage?: string | null;
+  heroImage?: string | null; // For type 'subcard'
+  fileUrl?: string | null;   // For type 'file'
+  fileType?: string | null;  // e.g., 'pdf', 'video', 'doc'
   createdAt?: any;
 };
 
 // --- Top-Level Card Functions ---
 
-// This function lists *all* non-deleted cards (good for a full admin view)
 export async function listCards(orgId: string): Promise<Card[]> {
   const cardsRef = collection(db, `orgs/${orgId}/cards`);
   const q = query(cardsRef, where("deleted", "==", false)); 
@@ -52,17 +54,15 @@ export async function listCards(orgId: string): Promise<Card[]> {
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
 }
 
-// NEW: Function to list *only* active cards (for staff portal)
 export async function listActiveCards(orgId: string): Promise<Card[]> {
   const col = collection(db, `orgs/${orgId}/cards`);
   const q = query(col, 
     where("status", "==", "active"),
-    where("deleted", "==", false) // Also check for deleted
+    where("deleted", "==", false)
   );
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Card, "id">) }));
 }
-
 
 export async function createCardFromTemplate(orgId: string, templateId: string) {
   const masterTemplateOrg = "samru";
@@ -73,23 +73,15 @@ export async function createCardFromTemplate(orgId: string, templateId: string) 
     labelCount: 0, 
     templateId,
     deleted: false,
-    // MODIFICATION: Added status and timestamps
     status: "active",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-    lastUpdated: serverTimestamp(), // Keep this for compatibility
+    lastUpdated: serverTimestamp(),
   });
   return refDoc.id;
 }
 
-// ... deleteCard, updateCardDesc, uploadToCard functions (unchanged) ...
-
-export async function deleteCard(
-  orgId: string,
-  cardId: string,
-  opts: { hard?: boolean } = {}
-) {
-  // Soft delete by default
+export async function deleteCard(orgId: string, cardId: string) {
   const cardRef = doc(db, `orgs/${orgId}/cards/${cardId}`);
   await updateDoc(cardRef, {
     deleted: true,
@@ -108,17 +100,8 @@ export async function updateCardDesc(orgId: string, cardId: string, description:
   });
 }
 
-export async function uploadToCard(orgId: string, cardId: string, file: File) {
-  const key = crypto.randomUUID();
-  const path = `orgs/${orgId}/cards/${cardId}/uploads/${key}/${file.name}`;
-  const task = uploadBytesResumable(ref(storage, path), file, { contentType: file.type });
-  await new Promise<void>((res, rej) => task.on("state_changed", undefined, rej, () => res()));
-}
-
-
 // --- NEW: Disable / Enable Helpers ---
 
-/** Hide a card without deleting it */
 export async function disableCard(orgId: string, cardId: string, by?: string, reason?: string) {
   const ref = doc(db, `orgs/${orgId}/cards/${cardId}`);
   await updateDoc(ref, {
@@ -130,7 +113,6 @@ export async function disableCard(orgId: string, cardId: string, by?: string, re
   });
 }
 
-/** Bring a disabled card back */
 export async function enableCard(orgId: string, cardId: string, by?: string) {
   const ref = doc(db, `orgs/${orgId}/cards/${cardId}`);
   await updateDoc(ref, {
@@ -141,17 +123,52 @@ export async function enableCard(orgId: string, cardId: string, by?: string) {
   });
 }
 
+// --- Sub-Content Functions ---
 
-// --- SubCard Functions (unchanged) ---
-
-const subCardCollection = (orgId: string, cardId: string) => 
+const subContentCollection = (orgId: string, cardId: string) => 
   collection(db, `orgs/${orgId}/cards/${cardId}/subcards`);
 
-export async function listSubCards(orgId: string, cardId: string): Promise<SubCard[]> {
-  const snap = await getDocs(subCardCollection(orgId, cardId));
+// MODIFICATION: Renamed to listSubContent
+export async function listSubContent(orgId: string, cardId: string): Promise<SubCard[]> {
+  const snap = await getDocs(subContentCollection(orgId, cardId));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
 }
 
+// MODIFICATION: This function now creates a 'file' type document
+export async function uploadToCard(orgId: string, cardId: string, file: File) {
+  // 1. Upload the file
+  const key = crypto.randomUUID();
+  const path = `orgs/${orgId}/cards/${cardId}/uploads/${key}/${file.name}`;
+  const storageRef = ref(storage, path);
+  const task = uploadBytesResumable(storageRef, file, { contentType: file.type });
+  await new Promise<void>((res, rej) => task.on("state_changed", undefined, rej, () => res()));
+  const downloadURL = await getDownloadURL(storageRef);
+
+  // 2. Determine file type
+  const fileType = file.type.startsWith('video/') ? 'video' 
+    : file.type.includes('pdf') ? 'pdf' 
+    : file.type.includes('presentation') ? 'ppt'
+    : file.type.includes('sheet') ? 'xls'
+    : file.type.includes('document') ? 'doc'
+    : 'file';
+
+  // 3. Create the 'file' document in the subcards collection
+  await addDoc(subContentCollection(orgId, cardId), {
+    type: 'file',
+    title: file.name,
+    fileUrl: downloadURL,
+    fileType: fileType,
+    createdAt: serverTimestamp(),
+  });
+
+  // 4. Update parent card timestamp
+  await updateDoc(doc(db, `orgs/${orgId}/cards/${cardId}`), {
+    updatedAt: serverTimestamp(),
+    lastUpdated: serverTimestamp()
+  });
+}
+
+// MODIFICATION: This function now creates a 'subcard' type document
 export async function createSubCard(
   orgId: string, 
   cardId: string, 
@@ -171,23 +188,34 @@ export async function createSubCard(
 
   const subCardData = {
     ...data,
+    type: 'subcard',
     heroImage: imageUrl,
     createdAt: serverTimestamp(),
   };
-  await addDoc(subCardCollection(orgId, cardId), subCardData);
-  // Also update the parent card's timestamp
+  await addDoc(subContentCollection(orgId, cardId), subCardData);
+
+  // Update parent card timestamp
   await updateDoc(doc(db, `orgs/${orgId}/cards/${cardId}`), {
     updatedAt: serverTimestamp(),
     lastUpdated: serverTimestamp()
   });
 }
 
-export async function deleteSubCard(orgId: string, cardId: string, subCardId: string, heroImage: string | null) {
-  await deleteDoc(doc(db, `orgs/${orgId}/cards/${cardId}/subcards/${subCardId}`));
+// MODIFICATION: Renamed and updated to handle file/image deletion
+export async function deleteSubContent(
+  orgId: string, 
+  cardId: string, 
+  subCard: SubCard
+) {
+  // 1. Delete the Firestore document
+  await deleteDoc(doc(db, `orgs/${orgId}/cards/${cardId}/subcards/${subCard.id}`));
 
-  if (heroImage) {
+  // 2. Determine which URL to delete from Storage
+  const urlToDelete = subCard.type === 'file' ? subCard.fileUrl : subCard.heroImage;
+
+  if (urlToDelete) {
     try {
-      await deleteObject(ref(storage, heroImage));
+      await deleteObject(ref(storage, urlToDelete));
     } catch (error: any) {
       if (error.code === 'storage/object-not-found') {
         console.warn("Storage object not found, deleting doc only.");
