@@ -9,11 +9,11 @@ import {
   serverTimestamp,
   query,
   where,
-  getDocs // Import new functions
+  getDocs 
 } from "firebase/firestore";
 import { ref, listAll, deleteObject, uploadBytesResumable } from "firebase/storage";
 
-// NEW: Exporting the Card type
+// Exporting the Card type
 export type Card = {
   id: string;
   title: string | null;
@@ -26,18 +26,22 @@ export type Card = {
   deleted?: boolean;
 };
 
-// NEW: Function to list cards for a department
+// Function to list cards for a department
 export async function listCards(orgId: string): Promise<Card[]> {
   const cardsRef = collection(db, `orgs/${orgId}/cards`);
-  // Query to get cards that are NOT marked as deleted
-  const q = query(cardsRef, where("deleted", "!=", true)); 
+  
+  // --- THIS IS THE FIX ---
+  // Query for cards where 'deleted' is set to false.
+  // This is more reliable and will find all non-deleted cards.
+  const q = query(cardsRef, where("deleted", "==", false)); 
+  // --- END OF FIX ---
   
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
 }
 
 export async function createCardFromTemplate(orgId: string, templateId: string) {
-  // FIX: Always read templates from the "samru" org
+  // Always read templates from the "samru" org
   const masterTemplateOrg = "samru";
   const t = (await getDoc(doc(db, `orgs/${masterTemplateOrg}/cardTemplates/${templateId}`))).data()!;
   
@@ -45,6 +49,10 @@ export async function createCardFromTemplate(orgId: string, templateId: string) 
   const refDoc = await addDoc(collection(db, `orgs/${orgId}/cards`), {
     title: t.title, description: t.description, heroImage: t.heroImage || null,
     labelCount: 0, status: "live", lastUpdated: serverTimestamp(), templateId,
+    // --- THIS IS THE OTHER FIX ---
+    // Explicitly set 'deleted' to false on creation.
+    deleted: false 
+    // --- END OF FIX ---
   });
   return refDoc.id;
 }
@@ -60,7 +68,7 @@ export async function disableCard(orgId: string, cardId: string) {
 
 /**
  * Soft delete (recommended): sets deleted=true and hides from UI/rules.
- * Pass { hard: true } if you really want to remove the doc and its uploads.
+ * Pass { hard: true } if you truly want to remove the doc and its uploads.
  */
 export async function deleteCard(
   orgId: string,
@@ -85,7 +93,6 @@ export async function deleteCard(
     await Promise.all(
       listing.items.map((item) => deleteObject(item))
     );
-    // (Optional) also walk subfolders in uploadsRoot.prefixes if you use nested dirs.
   } catch {
     // no uploads or storage perms — ignore and proceed
   }
