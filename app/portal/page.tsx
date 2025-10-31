@@ -71,7 +71,7 @@ function PortalHomeContent() {
   const { trackView } = useAnalytics();
 
   // State for real cards
-  const orgId = userData?.department || "samru";
+  const orgId = userData?.department || "default";
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   
