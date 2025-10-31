@@ -37,7 +37,11 @@ export async function listCards(orgId: string): Promise<Card[]> {
 }
 
 export async function createCardFromTemplate(orgId: string, templateId: string) {
-  const t = (await getDoc(doc(db, `orgs/${orgId}/cardTemplates/${templateId}`))).data()!;
+  // FIX: Always read templates from the "samru" org
+  const masterTemplateOrg = "samru";
+  const t = (await getDoc(doc(db, `orgs/${masterTemplateOrg}/cardTemplates/${templateId}`))).data()!;
+  
+  // Create the new card in the manager's org (orgId)
   const refDoc = await addDoc(collection(db, `orgs/${orgId}/cards`), {
     title: t.title, description: t.description, heroImage: t.heroImage || null,
     labelCount: 0, status: "live", lastUpdated: serverTimestamp(), templateId,
