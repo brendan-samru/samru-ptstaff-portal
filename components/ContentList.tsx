@@ -1,14 +1,17 @@
 "use client";
 import { Fragment, useRef, useState, useEffect } from "react";
 import {
+  uploadToCard,
+  updateCardDesc,
+  // MODIFICATION: Removed 'disableCard' from this import
   deleteCard,
   Card,
-  SubCard, // Import SubCard type
-  listSubCards, // Import subcard functions
+  SubCard,
+  listSubCards,
   deleteSubCard
 } from "@/lib/portal/cards";
 import { FileText, Plus, Trash, Edit, X, Loader2, ChevronDown, ImageOff } from "lucide-react";
-import { AddContentModal } from "./AddContentModal"; // Import the new modal
+import { AddContentModal } from "./AddContentModal"; // Or '@/components/AddContentModal'
 
 // --- Sub-Component for displaying a SubCard ---
 // MOVED TO TOP to fix 'Cannot find name' error
@@ -107,12 +110,15 @@ export function ContentList({
     }
   };
 
+  // MODIFICATION: Removed the unused 'handleDisable' function
+  // const handleDisable = ...
+
   // 3) Delete Top-Level Card
   const handleDelete = async (cardId: string) => {
     if (!confirm("Are you sure you want to delete this card? This will also delete all its content and subcards.")) return;
     setBusy(`delete-${cardId}`);
     try {
-      // We're using soft-delete, which is fine
+      // This function (deleteCard) already sets status to "disabled"
       await deleteCard(orgId, cardId);
       handleRefresh();
     } finally {
@@ -216,7 +222,6 @@ export function ContentList({
               {!subCards[card.id] && (
                 <button 
                   className="flex items-center gap-2 text-sm text-blue-500 font-medium"
-                  // --- THIS IS THE FIX ---
                   onClick={() => handleLoadSubCards(card.id)}
                   disabled={loadingSubCards === card.id}
                 >
