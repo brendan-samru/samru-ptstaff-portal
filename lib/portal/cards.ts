@@ -11,9 +11,9 @@ import {
   where,
   getDocs 
 } from "firebase/firestore";
-import { ref, listAll, deleteObject, uploadBytesResumable } from "firebase/storage";
+import { ref, listAll, deleteObject, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
-// Exporting the Card type
+// Card type (top-level card)
 export type Card = {
   id: string;
   title: string | null;
@@ -26,79 +26,50 @@ export type Card = {
   deleted?: boolean;
 };
 
-// Function to list cards for a department
+// NEW: SubCard type
+export type SubCard = {
+  id: string;
+  title: string;
+  description?: string | null;
+  heroImage?: string | null;
+  createdAt?: any;
+};
+
+// --- Top-Level Card Functions ---
+
 export async function listCards(orgId: string): Promise<Card[]> {
   const cardsRef = collection(db, `orgs/${orgId}/cards`);
-  
-  // --- THIS IS THE FIX ---
-  // Query for cards where 'deleted' is set to false.
-  // This is more reliable and will find all non-deleted cards.
   const q = query(cardsRef, where("deleted", "==", false)); 
-  // --- END OF FIX ---
-  
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
 }
 
 export async function createCardFromTemplate(orgId: string, templateId: string) {
-  // Always read templates from the "samru" org
   const masterTemplateOrg = "samru";
   const t = (await getDoc(doc(db, `orgs/${masterTemplateOrg}/cardTemplates/${templateId}`))).data()!;
   
-  // Create the new card in the manager's org (orgId)
   const refDoc = await addDoc(collection(db, `orgs/${orgId}/cards`), {
     title: t.title, description: t.description, heroImage: t.heroImage || null,
     labelCount: 0, status: "live", lastUpdated: serverTimestamp(), templateId,
-    // --- THIS IS THE OTHER FIX ---
-    // Explicitly set 'deleted' to false on creation.
     deleted: false 
-    // --- END OF FIX ---
   });
   return refDoc.id;
 }
 
-export async function disableCard(orgId: string, cardId: string) {
-  const cardRef = doc(db, `orgs/${orgId}/cards/${cardId}`);
-  await updateDoc(cardRef, {
-    status: "disabled",
-    disabledAt: serverTimestamp(),
-    lastUpdated: serverTimestamp(),
-  });
-}
-
-/**
- * Soft delete (recommended): sets deleted=true and hides from UI/rules.
- * Pass { hard: true } if you truly want to remove the doc and its uploads.
- */
 export async function deleteCard(
   orgId: string,
   cardId: string,
   opts: { hard?: boolean } = {}
 ) {
-  if (!opts.hard) {
-    const cardRef = doc(db, `orgs/${orgId}/cards/${cardId}`);
-    await updateDoc(cardRef, {
-      deleted: true,
-      deletedAt: serverTimestamp(),
-      status: "disabled",
-      lastUpdated: serverTimestamp(),
-    });
-    return;
-  }
-
-  // HARD DELETE (careful): remove uploads then delete the doc
-  const uploadsRoot = ref(storage, `orgs/${orgId}/cards/${cardId}/uploads`);
-  try {
-    const listing = await listAll(uploadsRoot);
-    await Promise.all(
-      listing.items.map((item) => deleteObject(item))
-    );
-  } catch {
-    // no uploads or storage perms — ignore and proceed
-  }
-
+  // Soft delete by default
   const cardRef = doc(db, `orgs/${orgId}/cards/${cardId}`);
-  await deleteDoc(cardRef);
+  await updateDoc(cardRef, {
+    deleted: true,
+    deletedAt: serverTimestamp(),
+    status: "disabled",
+    lastUpdated: serverTimestamp(),
+  });
+  // Note: We're not doing hard deletes for this simple implementation
 }
 
 export async function updateCardDesc(orgId: string, cardId: string, description: string) {
@@ -107,10 +78,67 @@ export async function updateCardDesc(orgId: string, cardId: string, description:
   });
 }
 
+// This function is for uploading simple files (PDF, DOC, etc.)
 export async function uploadToCard(orgId: string, cardId: string, file: File) {
   const key = crypto.randomUUID();
   const path = `orgs/${orgId}/cards/${cardId}/uploads/${key}/${file.name}`;
   const task = uploadBytesResumable(ref(storage, path), file, { contentType: file.type });
   await new Promise<void>((res, rej) => task.on("state_changed", undefined, rej, () => res()));
-  // The Cloud Function will write files/{...} and bump labelCount/lastUpdated.
+  // TODO: This should probably also create a "file" doc in a subcollection
+  // For now, it just uploads the file.
+}
+
+// --- NEW: SubCard Functions ---
+
+const subCardCollection = (orgId: string, cardId: string) => 
+  collection(db, `orgs/${orgId}/cards/${cardId}/subcards`);
+
+export async function listSubCards(orgId: string, cardId: string): Promise<SubCard[]> {
+  const snap = await getDocs(subCardCollection(orgId, cardId));
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+}
+
+export async function createSubCard(
+  orgId: string, 
+  cardId: string, 
+  data: { title: string, description: string | null },
+  imageFile: File | null
+) {
+  let imageUrl: string | null = null;
+
+  // 1. If an image is provided, upload it first
+  if (imageFile) {
+    const key = crypto.randomUUID();
+    const path = `orgs/${orgId}/cards/${cardId}/subcards/${key}/${imageFile.name}`;
+    const storageRef = ref(storage, path);
+    const task = uploadBytesResumable(storageRef, imageFile, { contentType: imageFile.type });
+    await new Promise<void>((res, rej) => task.on("state_changed", undefined, rej, () => res()));
+    imageUrl = await getDownloadURL(storageRef);
+  }
+
+  // 2. Create the SubCard document in Firestore
+  const subCardData = {
+    ...data,
+    heroImage: imageUrl,
+    createdAt: serverTimestamp(),
+  };
+  await addDoc(subCardCollection(orgId, cardId), subCardData);
+}
+
+export async function deleteSubCard(orgId: string, cardId: string, subCardId: string, heroImage: string | null) {
+  // 1. Delete the Firestore document
+  await deleteDoc(doc(db, `orgs/${orgId}/cards/${cardId}/subcards/${subCardId}`));
+
+  // 2. If it had an image, delete it from Storage
+  if (heroImage) {
+    try {
+      await deleteObject(ref(storage, heroImage));
+    } catch (error: any) {
+      if (error.code === 'storage/object-not-found') {
+        console.warn("Storage object not found, deleting doc only.");
+      } else {
+        console.error("Error deleting storage file:", error);
+      }
+    }
+  }
 }
