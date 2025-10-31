@@ -4,7 +4,8 @@ import { db } from "@/lib/firebase/client";
 import { collection, getDocs } from "firebase/firestore";
 import { createCardFromTemplate } from "@/lib/portal/cards";
 
-type Template = { id: string; title: string; description?: string; heroImage?: string; };
+// Use the CardTemplate type from your templates library
+import { CardTemplate } from "@/lib/portal/templates";
 
 export function TemplatesModal({
   orgId = "samru",
@@ -17,7 +18,7 @@ export function TemplatesModal({
   onClose: () => void;
   onCreated?: (cardId: string) => void;
 }) {
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templates, setTemplates] = useState<CardTemplate[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,28 +42,47 @@ export function TemplatesModal({
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="w-full max-w-lg rounded-xl bg-white p-4 shadow-xl">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Choose a Card Template</h2>
-          <button className="px-2 py-1 rounded" onClick={onClose}>Close</button>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Choose a Card Template</h2>
+          <button 
+            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md" 
+            onClick={onClose}
+          >
+            Close
+          </button>
         </div>
-        <div className="space-y-2 max-h-[60vh] overflow-auto">
+        <div className="space-y-3 max-h-[60vh] overflow-auto pr-2">
           {templates.map((t) => (
             <button
               key={t.id}
               onClick={() => handleChoose(t.id)}
-              disabled={busyId === t.id}
-              className="w-full text-left border rounded-lg p-3 hover:bg-gray-50"
+              disabled={!!busyId}
+              className="w-full text-left border rounded-lg p-3 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-start gap-4"
             >
-              <div className="font-medium">{t.title}</div>
-              {t.description && (
-                <div className="text-sm text-gray-600 line-clamp-2">{t.description}</div>
-              )}
+              {/* Small image on the left */}
+              <div className="w-20 h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
+                {t.heroImage ? (
+                  <img src={t.heroImage} alt={t.title || ""} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full grid place-items-center text-xs text-gray-400">No img</div>
+                )}
+              </div>
+              
+              {/* Title and Description on the right */}
+              <div className="flex-1">
+                <div className="font-semibold text-lg text-gray-900">
+                  {busyId === t.id ? "Creating..." : (t.title || "Untitled")}
+                </div>
+                {t.description && (
+                  <div className="text-sm text-gray-600 line-clamp-2">{t.description}</div>
+                )}
+              </div>
             </button>
           ))}
           {templates.length === 0 && (
-            <div className="text-sm text-gray-600">No templates yet.</div>
+            <div className="text-sm text-center text-gray-600 py-8">No templates found.</div>
           )}
         </div>
       </div>
