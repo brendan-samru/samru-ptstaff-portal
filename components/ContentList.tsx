@@ -1,50 +1,48 @@
 "use client";
 import { Fragment, useRef, useState, useEffect } from "react";
 import {
-  uploadToCard,
-  updateCardDesc,
-  // MODIFICATION: Removed 'disableCard' from this import
   deleteCard,
   Card,
-  SubCard,
-  listSubCards,
+  SubCard, // Import SubCard type
+  listSubCards, // Import subcard functions
   deleteSubCard
 } from "@/lib/portal/cards";
 import { FileText, Plus, Trash, Edit, X, Loader2, ChevronDown, ImageOff } from "lucide-react";
-import { AddContentModal } from "./AddContentModal";
+import { AddContentModal } from "./AddContentModal"; // Import the new modal
 
-// SubCardItem component
+// --- Sub-Component for displaying a SubCard ---
+// MOVED TO TOP to fix 'Cannot find name' error
 function SubCardItem({ 
   subCard, 
-  onDelete, 
-  busy 
-}: { 
-  subCard: SubCard; 
-  onDelete: () => void; 
-  busy: boolean; 
+  onDelete,
+  busy
+} : { 
+  subCard: SubCard, 
+  onDelete: () => void,
+  busy: boolean
 }) {
   return (
-    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-      {/* Subcard Image */}
-      <div className="w-16 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+    <div className="flex items-start gap-3 p-3 bg-gray-100 rounded-lg">
+      {/* 4:3 Image on the left */}
+      <div className="w-24 h-18 bg-gray-300 rounded-md overflow-hidden flex-shrink-0" style={{ aspectRatio: '4/3' }}>
         {subCard.heroImage ? (
-          <img src={subCard.heroImage} alt={subCard.title || ""} className="w-full h-full object-cover" />
+          <img src={subCard.heroImage} alt={subCard.title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full grid place-items-center">
-            <ImageOff className="w-4 h-4 text-gray-400" />
+            <ImageOff className="w-5 h-5 text-gray-500" />
           </div>
         )}
       </div>
-      
-      {/* Subcard Content */}
+
+      {/* Headline (Title) and Content (Description) on the right */}
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-medium text-gray-900 truncate">{subCard.title || "Untitled"}</h4>
-        <p className="text-xs text-gray-600 line-clamp-1">{subCard.description || "No description"}</p>
+        <h4 className="font-semibold text-gray-800 truncate">{subCard.title}</h4>
+        <p className="text-sm text-gray-600 line-clamp-2">{subCard.description || "No description."}</p>
       </div>
       
-      {/* Delete Button */}
-      <button
-        className="p-1 text-red-500 hover:bg-red-50 rounded"
+      {/* Delete button for the subcard */}
+      <button 
+        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-100 rounded-full"
         onClick={onDelete}
         disabled={busy}
         title="Delete Subcard"
@@ -52,12 +50,15 @@ function SubCardItem({
         {busy ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
-          <Trash className="w-4 h-4" />
+          <X className="w-4 h-4" />
         )}
       </button>
     </div>
   );
 }
+
+
+// --- Main ContentList Component ---
 
 export function ContentList({
   orgId = "samru",
@@ -105,16 +106,13 @@ export function ContentList({
       setLoadingSubCards(null);
     }
   };
-  
-  // MODIFICATION: Removed the unused 'handleDisable' function
-  // const handleDisable = ...
 
   // 3) Delete Top-Level Card
   const handleDelete = async (cardId: string) => {
     if (!confirm("Are you sure you want to delete this card? This will also delete all its content and subcards.")) return;
     setBusy(`delete-${cardId}`);
     try {
-      // This function (deleteCard) already sets status to "disabled"
+      // We're using soft-delete, which is fine
       await deleteCard(orgId, cardId);
       handleRefresh();
     } finally {
@@ -218,6 +216,7 @@ export function ContentList({
               {!subCards[card.id] && (
                 <button 
                   className="flex items-center gap-2 text-sm text-blue-500 font-medium"
+                  // --- THIS IS THE FIX ---
                   onClick={() => handleLoadSubCards(card.id)}
                   disabled={loadingSubCards === card.id}
                 >
@@ -254,6 +253,3 @@ export function ContentList({
     </div>
   );
 }
-
-
-//
