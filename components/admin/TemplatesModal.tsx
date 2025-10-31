@@ -24,10 +24,15 @@ export function TemplatesModal({
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const snap = await getDocs(collection(db, `orgs/${orgId}/cardTemplates`));
+      // --- THIS IS THE FIX ---
+      // Always fetch templates from the "samru" (super-admin) folder
+      const masterTemplateOrg = "samru";
+      const snap = await getDocs(collection(db, `orgs/${masterTemplateOrg}/cardTemplates`));
+      // --- END OF FIX ---
+
       setTemplates(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
     })();
-  }, [open, orgId]);
+  }, [open]); // We no longer need orgId as a dependency here
 
   const handleChoose = async (templateId: string) => {
     setBusyId(templateId);
@@ -88,4 +93,5 @@ export function TemplatesModal({
       </div>
     </div>
   );
+
 }
