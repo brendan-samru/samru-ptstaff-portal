@@ -30,7 +30,7 @@ export type Card = {
 export async function listCards(orgId: string): Promise<Card[]> {
   const cardsRef = collection(db, `orgs/${orgId}/cards`);
   
-  // --- THIS IS THE FIX ---
+  // --- THIS IS THE FIX ----
   // Query for cards where 'deleted' is set to false.
   // This is more reliable and will find all non-deleted cards.
   const q = query(cardsRef, where("deleted", "==", false)); 
