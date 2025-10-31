@@ -7,9 +7,10 @@ import { useRouter } from 'next/navigation';
 import { LogOut, Plus, FileText } from 'lucide-react';
 
 // Import the new components and functions
-import { ContentList } from '@/components/ContentList'; // Use the component provided
-import { TemplatesModal } from '@/components/TemplatesModal'; // Use the component you provided
-import { listCards, Card } from '@/lib/portal/cards'; // Use the functions we just added
+import { ContentList } from '@/components/ContentList'; 
+import { TemplatesModal } from '@/components/TemplatesModal';
+// MODIFICATION: Import listActiveCards instead of listCards
+import { listActiveCards, Card } from '@/lib/portal/cards'; 
 
 function AdminContent() {
   const { userData, logout } = useAuth();
@@ -30,7 +31,8 @@ function AdminContent() {
     if (!orgId) return;
     setLoading(true);
     try {
-      const items = await listCards(orgId);
+      // MODIFICATION: Call listActiveCards
+      const items = await listActiveCards(orgId);
       setCards(items);
     } catch (error) {
       console.error('Error loading cards:', error);
@@ -67,7 +69,7 @@ function AdminContent() {
           <div className="flex items-center gap-3">
             {userData?.role === 'super_admin' && (
               <button
-                onClick={() => router.push('/super')}
+                onClick={() => router.push('/super-admin')}
                 className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
               >
                 Super Admin
@@ -118,7 +120,7 @@ function AdminContent() {
               <ContentList 
                 orgId={orgId} 
                 cards={cards} 
-                onRefresh={loadCards} 
+                onRefresh={loadCards} // This will re-run 'listActiveCards'
               />
             )}
           </div>
