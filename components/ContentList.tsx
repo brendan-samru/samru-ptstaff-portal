@@ -10,10 +10,10 @@ import {
   listSubContent,
   deleteSubContent
 } from "@/lib/portal/cards";
-import { FileText, Plus, Trash, X, Loader2, ChevronDown, ImageOff, Video, File, Presentation, FileSpreadsheet } from "lucide-react";
+import { FileText, Plus, Trash, X, Loader2, ChevronDown, ImageOff, Video, File, Presentation, FileSpreadsheet, EyeOff } from "lucide-react";
 import { AddContentModal } from "./AddContentModal"; // Or '@/components/AddContentModal'
 
-// --- Sub-Component for displaying a SubCard ---
+// --- Sub-Component for displaying a SubCard or File ---
 function SubContentItem({ 
   subCard, 
   onDelete,
@@ -65,7 +65,17 @@ function SubContentItem({
 
     return (
       <div className="flex items-center gap-3 p-3 bg-gray-100 rounded-lg">
-        <Icon className="w-6 h-6 text-gray-600 flex-shrink-0" />
+        {/* Show image preview if fileType is 'image' */}
+        <div className="w-16 h-12 bg-gray-300 rounded-md overflow-hidden flex-shrink-0" style={{ aspectRatio: '4/3' }}>
+          {subCard.fileType === 'image' && subCard.fileUrl ? (
+            <img src={subCard.fileUrl} alt={subCard.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full grid place-items-center">
+              <Icon className="w-6 h-6 text-gray-500" />
+            </div>
+          )}
+        </div>
+
         <div className="flex-1 min-w-0">
           <a 
             href={subCard.fileUrl || '#'} 
@@ -226,7 +236,6 @@ export function ContentList({
               <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                 <button
                   className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                  // --- THIS IS THE FIX ---
                   onClick={() => handleAddContentClick(card.id)}
                   disabled={!!busy}
                   title="Add Content or Subcard"
@@ -237,14 +246,16 @@ export function ContentList({
                 <button
                   onClick={() => handleDisable(card.id)}
                   className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 text-sm"
+                  // --- THIS IS THE FIX ---
                   disabled={busy === `disable-${card.id}`}
                   title="Disable (hide without deleting)"
                 >
-                  {busy === `disable-${card.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash className="w-4 h-4" />}
+                  {busy === `disable-${card.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <EyeOff className="w-4 h-4" />}
                 </button>
                 <button
                   className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm"
                   onClick={() => handleDelete(card.id)}
+                  // --- THIS IS THE FIX ---
                   disabled={busy === `delete-${card.id}`}
                   title="Delete permanently"
                 >

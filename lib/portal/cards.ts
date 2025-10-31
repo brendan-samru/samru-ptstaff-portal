@@ -33,15 +33,15 @@ export type Card = {
   enabledBy?: string;
 };
 
-// MODIFICATION: SubCard type now includes type and fileUrl
+// SubCard type
 export type SubCard = {
   id: string;
-  type: 'subcard' | 'file'; // Distinguish between a subcard and a simple file
+  type: 'subcard' | 'file';
   title: string;
   description?: string | null;
-  heroImage?: string | null; // For type 'subcard'
-  fileUrl?: string | null;   // For type 'file'
-  fileType?: string | null;  // e.g., 'pdf', 'video', 'doc'
+  heroImage?: string | null;
+  fileUrl?: string | null;
+  fileType?: string | null;
   createdAt?: any;
 };
 
@@ -100,7 +100,7 @@ export async function updateCardDesc(orgId: string, cardId: string, description:
   });
 }
 
-// --- NEW: Disable / Enable Helpers ---
+// --- Disable / Enable Helpers ---
 
 export async function disableCard(orgId: string, cardId: string, by?: string, reason?: string) {
   const ref = doc(db, `orgs/${orgId}/cards/${cardId}`);
@@ -128,7 +128,6 @@ export async function enableCard(orgId: string, cardId: string, by?: string) {
 const subContentCollection = (orgId: string, cardId: string) => 
   collection(db, `orgs/${orgId}/cards/${cardId}/subcards`);
 
-// MODIFICATION: Renamed to listSubContent
 export async function listSubContent(orgId: string, cardId: string): Promise<SubCard[]> {
   const snap = await getDocs(subContentCollection(orgId, cardId));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
@@ -144,13 +143,16 @@ export async function uploadToCard(orgId: string, cardId: string, file: File) {
   await new Promise<void>((res, rej) => task.on("state_changed", undefined, rej, () => res()));
   const downloadURL = await getDownloadURL(storageRef);
 
-  // 2. Determine file type
-  const fileType = file.type.startsWith('video/') ? 'video' 
+  // --- THIS IS THE FIX ---
+  // 2. Determine file type, now with 'image'
+  const fileType = file.type.startsWith('image/') ? 'image' 
+    : file.type.startsWith('video/') ? 'video' 
     : file.type.includes('pdf') ? 'pdf' 
     : file.type.includes('presentation') ? 'ppt'
     : file.type.includes('sheet') ? 'xls'
     : file.type.includes('document') ? 'doc'
     : 'file';
+  // --- END OF FIX ---
 
   // 3. Create the 'file' document in the subcards collection
   await addDoc(subContentCollection(orgId, cardId), {
@@ -168,7 +170,7 @@ export async function uploadToCard(orgId: string, cardId: string, file: File) {
   });
 }
 
-// MODIFICATION: This function now creates a 'subcard' type document
+// This function now creates a 'subcard' type document
 export async function createSubCard(
   orgId: string, 
   cardId: string, 
@@ -201,7 +203,7 @@ export async function createSubCard(
   });
 }
 
-// MODIFICATION: Renamed and updated to handle file/image deletion
+// Renamed and updated to handle file/image deletion
 export async function deleteSubContent(
   orgId: string, 
   cardId: string, 
