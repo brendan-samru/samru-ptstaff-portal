@@ -30,6 +30,10 @@ import { useRouter } from 'next/navigation';
 import 'react-quill/dist/quill.snow.css'; 
 import dynamic from 'next/dynamic';
 
+ const ReactQuill = dynamic(() => import('react-quill'), { 
+  ssr: false 
+  });
+
 interface PortalAnalytics {
   managerId: string;
   managerName: string;
@@ -39,10 +43,6 @@ interface PortalAnalytics {
   uniqueUsers: number;
   lastActivity: Date;
 }
-
- const ReactQuill = dynamic(() => import('react-quill'), { 
-  ssr: false 
-  });
 
 
 function SuperAdminContent() {

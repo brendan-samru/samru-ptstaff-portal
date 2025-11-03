@@ -138,7 +138,7 @@ function PortalHomeContent() {
   };
 
   const getAdminDashboardLink = () => {
-    if (isSuperAdmin) return '/super-admin';
+    if (isSuperAdmin) return '/super';
     if (isAdmin) return '/admin';
     return null;
   };
