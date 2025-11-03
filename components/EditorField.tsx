@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 // Your TinyMCE API key
 // You can get a free one here: https://www.tiny.cloud/auth/signup/
-const TINYMCE_API_KEY = "YOUR_API_KEY_GOES_HERE";
+const TINYMCE_API_KEY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
 
 export function EditorField({
   value,
