@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { Card, createSubCard, uploadToCard } from "@/lib/portal/cards";
 import { FileText, Loader2, Plus, Upload, X } from "lucide-react";
-import { QuillField } from '@/components/QuillField';
+import { EditorField } from '@/components/EditorField';
 
 
 export function AddContentModal({
@@ -83,7 +83,7 @@ export function AddContentModal({
         cardId, 
         { 
             title, 
-            description: (description === '<p><br></p>' || description === '') ? null : description 
+            description: description === '' ? null : description
         }, 
         imageFile
     );
@@ -176,10 +176,9 @@ export function AddContentModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description (optional)
               </label>
-              <QuillField
+              <EditorField
                 value={description}
                 onChange={setDescription}
-                modules={quillModules}
                 placeholder="Description (optional)"
               />
             </div>

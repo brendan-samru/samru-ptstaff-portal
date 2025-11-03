@@ -27,7 +27,7 @@ import {
   X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { QuillField } from '@/components/QuillField';
+import { EditorField } from '@/components/EditorField';
 
 interface PortalAnalytics {
   managerId: string;
@@ -372,10 +372,9 @@ function SuperAdminContent() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Description (optional)
                         </label>
-                        <QuillField
+                        <EditorField
                           value={newDesc}
                           onChange={setNewDesc}
-                          modules={quillModules}
                           placeholder="Brief description of this template's purpose"
                           readOnly={tplBusy}
                         />
@@ -427,7 +426,7 @@ function SuperAdminContent() {
                               // --- Step 3: Save data to Firestore ---
                               console.log("Saving template to Firestore...");
                               // Use 'undefined' for update, 'null' for create
-                              const finalDescription = (newDesc === '<p><br></p>' || newDesc === '') ? null : newDesc;
+                              const finalDescription = newDesc === '' ? null : newDesc;
 
                               if (editing) {
                                 console.log("Updating template:", editing.id);

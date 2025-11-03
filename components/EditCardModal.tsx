@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, updateCardDetails } from '@/lib/portal/cards';
 import { Loader2, X } from 'lucide-react';
-import { QuillField } from '@/components/QuillField';
+import { EditorField } from '@/components/EditorField';
 
 type EditCardModalProps = {
   open: boolean;
@@ -42,7 +42,7 @@ export function EditCardModal({ open, onClose, onRefresh, card, orgId }: EditCar
     try {
   
   // Check for empty HTML
-  const finalDescription = (description === '<p><br></p>' || description === '') ? null : description;
+  const finalDescription = description === '' ? null : description;
   await updateCardDetails(orgId, card.id, { title, description: finalDescription });
       onRefresh();
       onClose();
@@ -85,10 +85,9 @@ export function EditCardModal({ open, onClose, onRefresh, card, orgId }: EditCar
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Card Description
               </label>
-              <QuillField
+              <EditorField
                 value={description}
                 onChange={setDescription}
-                modules={quillModules}
                 placeholder="Description (optional)"
               />
             </div>
