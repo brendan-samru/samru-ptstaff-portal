@@ -30,9 +30,6 @@ export function AddContentModal({
 });
 
   // State for Subcard Form
-  const [subcardTitle, setSubcardTitle] = useState("");
-  const [subcardDesc, setSubcardDesc] = useState("");
-  const [subcardImage, setSubcardImage] = useState<File | null>(null);
   const [description, setDescription] = useState('');
   const [title, setTitle] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -49,9 +46,9 @@ export function AddContentModal({
 
   const handleClose = () => {
     // Reset all form fields
-    setSubcardTitle("");
-    setSubcardDesc("");
-    setSubcardImage(null);
+    setTitle("");
+    setDescription("");
+    setImageFile(null);
     setBusy(false);
     onClose();
   };
@@ -76,11 +73,11 @@ export function AddContentModal({
   // --- Logic for Tab 2: Add Subcard ---
   const handleSubcardImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setSubcardImage(file);
+    if (file) setImageFile(file);
   };
 
   const handleSaveSubcard = async () => {
-    if (!subcardTitle) {
+    if (!title) {
       alert("Please enter a title for the subcard.");
       return;
     }
@@ -174,8 +171,8 @@ export function AddContentModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
               <input
                 type="text"
-                value={subcardTitle}
-                onChange={(e) => setSubcardTitle(e.target.value)}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Presentation Slides"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
@@ -212,4 +209,8 @@ export function AddContentModal({
       </div>
     </div>
   );
+}
+
+function setImage(file: File) {
+  throw new Error("Function not implemented.");
 }

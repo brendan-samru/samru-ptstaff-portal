@@ -27,6 +27,8 @@ import {
   X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import 'react-quill/dist/quill.snow.css'; 
+import dynamic from 'next/dynamic';
 
 interface PortalAnalytics {
   managerId: string;
@@ -37,6 +39,11 @@ interface PortalAnalytics {
   uniqueUsers: number;
   lastActivity: Date;
 }
+
+ const ReactQuill = dynamic(() => import('react-quill'), { 
+  ssr: false 
+  });
+
 
 function SuperAdminContent() {
   const { userData, logout } = useAuth();
@@ -56,6 +63,14 @@ function SuperAdminContent() {
   const [newHero, setNewHero] = useState<string | null>(null); // This is ONLY for the <img> preview src
   const [newFile, setNewFile] = useState<File | null>(null); // MODIFICATION: Store the actual file object
   const [editing, setEditing] = useState<CardTemplate | null>(null);
+
+  const quillModules = {
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link'],
+    ],
+  };
 
   // Load templates from Firebase
   const loadTemplates = async () => {
@@ -362,13 +377,14 @@ function SuperAdminContent() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Description (optional)
                         </label>
-                        <textarea
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8BC53F] focus:border-transparent"
-                          placeholder="Brief description of this template's purpose"
-                          rows={3}
+                        <ReactQuill 
+                          theme="snow"
                           value={newDesc}
-                          onChange={(e) => setNewDesc(e.target.value)}
-                          disabled={tplBusy}
+                          onChange={setNewDesc}
+                          modules={quillModules}
+                          className="bg-white"
+                          placeholder="Brief description of this template's purpose"
+                          readOnly={tplBusy}
                         />
                       </div>
 
@@ -420,24 +436,25 @@ function SuperAdminContent() {
                               // --- Step 3: Save data to Firestore ---
                               console.log("Saving template to Firestore...");
                               // Use 'undefined' for update, 'null' for create
-                              const templateData = {
-                                heroImage: uploadedUrl,
-                                title: newTitle || undefined,
-                                description: newDesc || undefined,
-                              };
-                              
+                              const finalDescription = (newDesc === '<p><br></p>' || newDesc === '') ? null : newDesc;
+
                               if (editing) {
                                 console.log("Updating template:", editing.id);
+                                const templateData = {
+                                  heroImage: uploadedUrl,
+                                  title: newTitle || undefined,
+                                  description: finalDescription || undefined, // <-- Use finalDescription
+                                };
                                 await updateTemplate(orgId, editing.id, templateData);
                               } else {
                                 console.log("Creating new template...");
                                 await createTemplate(orgId, {
                                   heroImage: uploadedUrl,
                                   title: newTitle || null, 
-                                  description: newDesc || null,
+                                  description: finalDescription, // <-- Use finalDescription
                                 });
                               }
-                              
+                                                            
                               // --- Step 4: Reset and reload ---
                               console.log("Save successful. Resetting form.");
                               handleCancel();
@@ -492,7 +509,10 @@ function SuperAdminContent() {
                                   <img src={template.heroImage} alt={template.title || ""} className="w-full h-64 object-cover rounded-lg mb-4 border border-gray-200" />
                                 )}
                                 {template.description && (
-                                  <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+                                  <div 
+                                    className="text-sm text-gray-600 mb-3" 
+                                    dangerouslySetInnerHTML={{ __html: template.description }} 
+                                  />
                                 )}
                                 {created && (
                                   <div className="text-xs text-gray-500">
