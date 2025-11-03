@@ -12,6 +12,7 @@ import {
 } from "@/lib/portal/cards";
 import { FileText, Plus, Trash, X, Loader2, ChevronDown, ImageOff, Video, File, Presentation, FileSpreadsheet, EyeOff, Eye } from "lucide-react";
 import { AddContentModal } from "./AddContentModal";
+import { EditCardModal } from "./EditCardModal"; 
 
 // ... (SubContentItem component remains the same) ...
 function SubContentItem({ 
@@ -103,16 +104,19 @@ export function ContentList({
   orgId = "samru",
   cards,
   onRefresh,
+  userRole,
 }: {
   orgId?: string;
   cards: Card[];
   onRefresh?: () => void;
+  userRole?: string;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [modalCardId, setModalCardId] = useState<string | null>(null);
   const [subCards, setSubCards] = useState<Record<string, SubCard[]>>({});
   const [loadingSubCards, setLoadingSubCards] = useState<string | null>(null);
   const [localCards, setLocalCards] = useState<Card[]>(cards);
+  const [editingCard, setEditingCard] = useState<Card | null>(null);
 
   useEffect(() => {
     setLocalCards(cards);
@@ -206,6 +210,19 @@ export function ContentList({
         }}
       />
 
+       {/* ADD THIS NEW MODAL */}
+       <EditCardModal
+           orgId={orgId}
+           card={editingCard}
+           open={!!editingCard}
+           onClose={() => setEditingCard(null)}
+           onRefresh={() => {
+           setEditingCard(null);
+           handleRefresh(); // Re-fetch all cards
+           }}
+       />
+       {/* END OF NEW MODAL */}
+
       {localCards.map((card) => {
         const isPublished = card.status === 'active';
         return (
@@ -238,6 +255,20 @@ export function ContentList({
 
                 {/* MODIFICATION: Action buttons updated */}
                 <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                  {/* --- ADD THIS BUTTON --- */}
+                    {userRole === 'super_admin' && (
+                        <button
+                        className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                        onClick={() => setEditingCard(card)}
+                        disabled={!!busy}
+                        title="Edit Card Details"
+                        >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                        Edit
+                        </button>
+                    )}
+                    {/* --- END OF NEW BUTTON --- */}
+                  
                   <button
                     className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
                     onClick={() => handleAddContentClick(card.id)}

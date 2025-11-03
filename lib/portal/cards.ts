@@ -47,6 +47,22 @@ export type SubCard = {
 
 // --- Top-Level Card Functions ---
 
+// Updates the core details of a top-level card
+export async function updateCardDetails(
+  orgId: string, 
+  cardId: string, 
+  data: { title: string, description: string }
+) {
+  const ref = doc(db, `orgs/${orgId}/cards/${cardId}`);
+  await updateDoc(ref, {
+    title: data.title,
+    description: data.description,
+    updatedAt: serverTimestamp(),
+    lastUpdated: serverTimestamp(),
+  });
+}
+// --- END OF NEW FUNCTION ---
+
 // Fetches *all* non-deleted cards (draft & active) for the admin page
 export async function listAllCards(orgId: string): Promise<Card[]> {
   const cardsRef = collection(db, `orgs/${orgId}/cards`);

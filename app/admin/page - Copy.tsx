@@ -10,7 +10,7 @@ import { LogOut, Plus, FileText } from 'lucide-react';
 import { ContentList } from '@/components/ContentList'; 
 import { TemplatesModal } from '@/components/TemplatesModal';
 // MODIFICATION: Import listActiveCards instead of listCards
-import { listAllCards, Card } from '@/lib/portal/cards';
+import { listAllCards, Card } from '@/lib/portal/cards'; 
 
 function AdminContent() {
   const { userData, logout } = useAuth();
@@ -31,6 +31,7 @@ function AdminContent() {
     if (!orgId) return;
     setLoading(true);
     try {
+      
       // MODIFICATION: Call listAllCards
       const items = await listAllCards(orgId);
       setCards(items);
@@ -120,8 +121,7 @@ function AdminContent() {
               <ContentList 
                 orgId={orgId} 
                 cards={cards} 
-                onRefresh={loadCards} // This will re-run 'listAllCards'
-                userRole={userData?.role} // <-- ADD THIS PROP
+                onRefresh={loadCards} // This will re-run 'listActiveCards'
               />
             )}
           </div>
