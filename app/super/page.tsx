@@ -9,7 +9,7 @@ import { FileUpload } from "@/components/FileUpload";
 import { listTemplates, createTemplate, updateTemplate, deleteTemplate, CardTemplate } from "@/lib/portal/templates";
 // MODIFICATION: Import storage functions
 import { storage } from '@/lib/firebase/client'; // Make sure this path is correct
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { 
   Crown, 
   FolderPlus, 
@@ -29,6 +29,7 @@ import {
 import { useRouter } from 'next/navigation';
 import 'react-quill/dist/quill.snow.css'; 
 import dynamic from 'next/dynamic';
+import { QuillField } from '@/components/QuillField';
 
  const ReactQuill = dynamic(() => import('react-quill'), { 
   ssr: false 
@@ -377,12 +378,10 @@ function SuperAdminContent() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Description (optional)
                         </label>
-                        <ReactQuill 
-                          theme="snow"
+                        <QuillField
                           value={newDesc}
                           onChange={setNewDesc}
                           modules={quillModules}
-                          className="bg-white"
                           placeholder="Brief description of this template's purpose"
                           readOnly={tplBusy}
                         />
@@ -417,12 +416,12 @@ function SuperAdminContent() {
                                 const sanitizedName = newFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
                                 const fileName = `${timestamp}_${sanitizedName}`;
                                 const storageRef = ref(storage, `orgs/${orgId}/cardTemplates/${fileName}`);
-                                
-                                const uploadTask = uploadBytesResumable(storageRef, newFile);
 
-                                // Wait for upload to complete
-                                await uploadTask;
-                                
+                                const uploadTask = uploadBytes(storageRef, newFile);
+
+                               // Upload the file
+                                await uploadBytes(storageRef, newFile);
+
                                 // Get the final URL
                                 uploadedUrl = await getDownloadURL(storageRef);
                                 console.log("File uploaded:", uploadedUrl);

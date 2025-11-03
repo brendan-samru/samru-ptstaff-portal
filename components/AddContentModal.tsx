@@ -4,6 +4,12 @@ import { Card, createSubCard, uploadToCard } from "@/lib/portal/cards";
 import { FileText, Loader2, Plus, Upload, X } from "lucide-react";
 import 'react-quill/dist/quill.snow.css';
 import dynamic from 'next/dynamic'; // Import 'dynamic' from Next.js
+import { QuillField } from '@/components/QuillField';
+
+  // Dynamically import ReactQuill and disable Server-Side Rendering (ssr)
+  const ReactQuill = dynamic(() => import('react-quill'), { 
+  ssr: false 
+});
 
 export function AddContentModal({
   orgId,
@@ -23,11 +29,6 @@ export function AddContentModal({
   
   // State for File Upload
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Dynamically import ReactQuill and disable Server-Side Rendering (ssr)
-  const ReactQuill = dynamic(() => import('react-quill'), { 
-  ssr: false 
-});
 
   // State for Subcard Form
   const [description, setDescription] = useState('');
@@ -181,11 +182,11 @@ export function AddContentModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description (optional)
               </label>
-              <ReactQuill 
-                theme="snow"
+              <QuillField
                 value={description}
-                onChange={setDescription} // Passes the HTML string to your state
+                onChange={setDescription}
                 modules={quillModules}
+                placeholder="Description (optional)"
               />
             </div>
             <div>

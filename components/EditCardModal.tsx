@@ -5,6 +5,7 @@ import { Card, updateCardDetails } from '@/lib/portal/cards';
 import { Loader2, X } from 'lucide-react';
 import 'react-quill/dist/quill.snow.css'; 
 import dynamic from 'next/dynamic';
+import { QuillField } from '@/components/QuillField';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -88,12 +89,11 @@ export function EditCardModal({ open, onClose, onRefresh, card, orgId }: EditCar
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Card Description
               </label>
-              <ReactQuill 
-                theme="snow"
+              <QuillField
                 value={description}
-                onChange={setDescription} // The editor's 'onChange' passes the HTML string directly
+                onChange={setDescription}
                 modules={quillModules}
-                className="bg-white" // Ensures the editor box is white
+                placeholder="Description (optional)"
               />
             </div>
           </div>
