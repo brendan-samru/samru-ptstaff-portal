@@ -3,11 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, updateCardDetails } from '@/lib/portal/cards';
 import { Loader2, X } from 'lucide-react';
-import 'react-quill/dist/quill.snow.css'; 
-import dynamic from 'next/dynamic';
 import { QuillField } from '@/components/QuillField';
-
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 type EditCardModalProps = {
   open: boolean;

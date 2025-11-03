@@ -2,14 +2,8 @@
 import { useRef, useState } from "react";
 import { Card, createSubCard, uploadToCard } from "@/lib/portal/cards";
 import { FileText, Loader2, Plus, Upload, X } from "lucide-react";
-import 'react-quill/dist/quill.snow.css';
-import dynamic from 'next/dynamic'; // Import 'dynamic' from Next.js
 import { QuillField } from '@/components/QuillField';
 
-  // Dynamically import ReactQuill and disable Server-Side Rendering (ssr)
-  const ReactQuill = dynamic(() => import('react-quill'), { 
-  ssr: false 
-});
 
 export function AddContentModal({
   orgId,

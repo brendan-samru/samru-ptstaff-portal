@@ -27,13 +27,7 @@ import {
   X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import 'react-quill/dist/quill.snow.css'; 
-import dynamic from 'next/dynamic';
 import { QuillField } from '@/components/QuillField';
-
- const ReactQuill = dynamic(() => import('react-quill'), { 
-  ssr: false 
-  });
 
 interface PortalAnalytics {
   managerId: string;
@@ -417,9 +411,7 @@ function SuperAdminContent() {
                                 const fileName = `${timestamp}_${sanitizedName}`;
                                 const storageRef = ref(storage, `orgs/${orgId}/cardTemplates/${fileName}`);
 
-                                const uploadTask = uploadBytes(storageRef, newFile);
-
-                               // Upload the file
+                                // Upload the file
                                 await uploadBytes(storageRef, newFile);
 
                                 // Get the final URL
