@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Card, updateCardDetails } from '@/lib/portal/cards';
 import { Loader2, X } from 'lucide-react';
+import 'react-quill/dist/quill.snow.css'; 
+import dynamic from 'next/dynamic';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 type EditCardModalProps = {
   open: boolean;
@@ -25,13 +29,24 @@ export function EditCardModal({ open, onClose, onRefresh, card, orgId }: EditCar
     }
   }, [card]);
 
+  const quillModules = {
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link'],
+    ],
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!card) return;
 
     setIsBusy(true);
     try {
-      await updateCardDetails(orgId, card.id, { title, description });
+  
+  // Check for empty HTML
+  const finalDescription = (description === '<p><br></p>' || description === '') ? null : description;
+  await updateCardDetails(orgId, card.id, { title, description: finalDescription });
       onRefresh();
       onClose();
     } catch (error) {
@@ -70,15 +85,15 @@ export function EditCardModal({ open, onClose, onRefresh, card, orgId }: EditCar
               />
             </div>
             <div>
-              <label htmlFor="cardDescription" className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Card Description
               </label>
-              <textarea
-                id="cardDescription"
-                rows={4}
+              <ReactQuill 
+                theme="snow"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                onChange={setDescription} // The editor's 'onChange' passes the HTML string directly
+                modules={quillModules}
+                className="bg-white" // Ensures the editor box is white
               />
             </div>
           </div>

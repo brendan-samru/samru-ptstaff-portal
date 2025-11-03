@@ -51,7 +51,7 @@ export type SubCard = {
 export async function updateCardDetails(
   orgId: string, 
   cardId: string, 
-  data: { title: string, description: string }
+  data: { title: string, description: string | null }
 ) {
   const ref = doc(db, `orgs/${orgId}/cards/${cardId}`);
   await updateDoc(ref, {
