@@ -2,6 +2,8 @@
 import { useRef, useState } from "react";
 import { Card, createSubCard, uploadToCard } from "@/lib/portal/cards";
 import { FileText, Loader2, Plus, Upload, X } from "lucide-react";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 export function AddContentModal({
   orgId,
@@ -26,8 +28,19 @@ export function AddContentModal({
   const [subcardTitle, setSubcardTitle] = useState("");
   const [subcardDesc, setSubcardDesc] = useState("");
   const [subcardImage, setSubcardImage] = useState<File | null>(null);
+  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   if (!open || !cardId) return null;
+
+  const quillModules = {
+  toolbar: [
+    ['bold', 'italic', 'underline'],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    ['link'],
+  ],
+};
 
   const handleClose = () => {
     // Reset all form fields
@@ -71,9 +84,12 @@ export function AddContentModal({
       await createSubCard(
         orgId, 
         cardId, 
-        { title: subcardTitle, description: subcardDesc || null }, 
-        subcardImage
-      );
+        { 
+            title, 
+            description: (description === '<p><br></p>' || description === '') ? null : description 
+        }, 
+        imageFile
+    );
       onRefresh(); // Refresh the parent list
       handleClose(); // Close modal on success
     } catch (error) {
@@ -160,13 +176,14 @@ export function AddContentModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
-              <textarea
-                value={subcardDesc}
-                onChange={(e) => setSubcardDesc(e.target.value)}
-                placeholder="A brief summary of this subcard's content"
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description (optional)
+              </label>
+              <ReactQuill 
+                theme="snow"
+                value={description}
+                onChange={setDescription} // Passes the HTML string to your state
+                modules={quillModules}
               />
             </div>
             <div>
