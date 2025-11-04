@@ -21,6 +21,7 @@ export default function PortalPage() {
   // State for cards and loading
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
   // Fetch cards on component mount
   useEffect(() => {
@@ -141,7 +142,11 @@ export default function PortalPage() {
             /* This is the 4-column grid you asked for */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {cards.map(card => (
-                <PortalCard key={card.id} card={card} />
+                <PortalCard 
+                  key={card.id} 
+                  card={card} 
+                  onClick={() => setSelectedCard(card)}
+                />
               ))}
             </div>
           )}
