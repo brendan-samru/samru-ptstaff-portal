@@ -39,7 +39,10 @@ function SubContentItem({
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-semibold text-gray-800 truncate">{subCard.title}</h4>
-          <p className="text-sm text-gray-600">{subCard.description || "No description."}</p>
+          <div 
+            className="text-sm text-gray-600"
+            dangerouslySetInnerHTML={{ __html: subCard.description ?? "No description." }}
+          />
         </div>
         <button 
           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-100 rounded-full"

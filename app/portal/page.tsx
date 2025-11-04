@@ -56,7 +56,16 @@ export default function PortalPage() {
   const isAdmin = userData?.role === 'admin' || userData?.role === 'super_admin';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
+      {/* --- ADD THIS BLOCK --- */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-green-100/80 via-blue-100/60 to-white" />
+        <div className="absolute top-20 left-10 w-64 h-64 bg-[#8BC53F]/20 rounded-full blur-3xl" />
+        <div className="absolute top-40 right-20 w-96 h-96 bg-[#26A9E0]/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-[#65953B]/15 rounded-full blur-3xl" />
+        <div className="absolute bottom-40 right-1/4 w-72 h-72 bg-[#0D6537]/15 rounded-full blur-3xl" />
+      </div>
+      {/* --- END OF BLOCK --- */}
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
