@@ -1,50 +1,82 @@
 'use client';
 
-import { Card } from '@/lib/portal/cards';
-import { FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Card, SubCard, listSubContent } from '@/lib/portal/cards';
+import { SubContentItem } from './SubContentItem'; // Import the component from Step 1
+import { Loader2, X } from 'lucide-react';
 
-// 1. Update the props to accept an onClick function
-export function PortalCard({ card, onClick }: { card: Card, onClick: () => void }) {
+type ModalProps = {
+  open: boolean;
+  onClose: () => void;
+  card: Card | null;
+  orgId: string;
+};
+
+export function PortalSubContentModal({ open, onClose, card, orgId }: ModalProps) {
+  const [subContent, setSubContent] = useState<SubCard[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Load sub-content when the modal is opened
+  useEffect(() => {
+    if (open && card) {
+      setLoading(true);
+      listSubContent(orgId, card.id)
+        .then(setSubContent)
+        .catch(err => console.error("Failed to load sub-content:", err))
+        .finally(() => setLoading(false));
+    } else {
+      // Clear content when modal is closed
+      setSubContent([]);
+    }
+  }, [open, card, orgId]);
+
+  if (!open || !card) return null;
+
   return (
-    // 2. Change this wrapper to a <button> and add the onClick handler
-    <button
-      onClick={onClick}
-      className="flex flex-col text-left bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-    >
-      {/* Card Image */}
-      <div className="w-full h-40 bg-gray-200">
-        {card.heroImage ? (
-          <img 
-            src={card.heroImage} 
-            alt={card.title || 'Card image'} 
-            className="w-full h-full object-cover" 
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
-            <FileText size={40} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl h-[80vh] flex flex-col">
+        {/* Modal Header */}
+        <div className="flex items-start justify-between p-4 border-b">
+          <div>
+            <h3 className="text-xl font-semibold">{card.title}</h3>
+            {card.description && (
+              <div 
+                className="text-sm text-gray-600 mt-1"
+                dangerouslySetInnerHTML={{ __html: card.description }}
+              />
+            )}
           </div>
-        )}
-      </div>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-      {/* Card Content */}
-      <div className="p-4 flex-1">
-        <h3 className="font-bold text-lg text-gray-900 truncate">
-          {card.title || 'Untitled Card'}
-        </h3>
-        {card.description && (
-          <div 
-            className="text-sm text-gray-600 mt-1 line-clamp-3"
-            dangerouslySetInnerHTML={{ __html: card.description }} 
-          />
-        )}
-      </div>
+        {/* Modal Body */}
+        <div className="flex-1 p-4 overflow-y-auto space-y-3">
+          {loading && (
+            <div className="flex justify-center items-center py-10">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+            </div>
+          )}
+          {!loading && subContent.length === 0 && (
+            <p className="text-center text-gray-500 py-10">No content found for this card.</p>
+          )}
+          {!loading && subContent.map(item => (
+            <SubContentItem key={item.id} subCard={item} />
+          ))}
+        </div>
 
-      {/* Card Footer */}
-      <div className="p-4 bg-gray-50 border-t border-gray-100">
-        <span className="text-sm font-medium text-blue-600">
-          View Content
-        </span>
+        {/* Modal Footer */}
+        <div className="p-4 bg-gray-50 border-t text-right">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-md"
+          >
+            Close
+          </button>
+        </div>
       </div>
-    </button>
+    </div>
   );
 }
