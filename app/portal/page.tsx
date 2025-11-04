@@ -30,6 +30,10 @@ export default function PortalPage() {
       return;
     }
     
+  // --- ADD THIS LINE ---
+  console.log("Attempting to load cards for department:", orgId);
+  // ---
+
     setLoading(true);
     listActiveCards(orgId)
       .then(items => {
