@@ -9,6 +9,7 @@ import { LogOut, FileText, Loader2 } from 'lucide-react';
 import { listActiveCards, Card } from '@/lib/portal/cards';
 // Import our new component
 import { PortalCard } from '@/components/PortalCard';
+import { PortalSubContentModal } from '@/components/PortalSubContentModal';
 
 export default function PortalPage() {
   const { userData, logout } = useAuth();
@@ -152,6 +153,15 @@ export default function PortalPage() {
           )}
         </div>
       </div>
+      {/* --- ADD THIS CODE --- */}
+      {/* This renders the modal and uses the 'selectedCard' state */}
+      <PortalSubContentModal
+        open={!!selectedCard}
+        onClose={() => setSelectedCard(null)}
+        card={selectedCard}
+        orgId={orgId!}
+      />
+      {/* --- END OF NEW CODE --- */}
     </div>
   );
 }
