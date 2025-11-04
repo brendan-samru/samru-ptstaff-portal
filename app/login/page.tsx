@@ -98,7 +98,7 @@ export default function LoginPage() {
                   className="block text-sm font-semibold text-gray-900 mb-2"
                   style={{ fontFamily: 'Inter, sans-serif' }}
                 >
-                  Email Address
+                  Username
                 </label>
                 <input
                   id="email"
