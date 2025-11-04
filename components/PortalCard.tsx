@@ -3,10 +3,14 @@
 import { Card } from '@/lib/portal/cards';
 import { FileText } from 'lucide-react';
 
-// This component defines what each card in the grid looks like
-export function PortalCard({ card }: { card: Card }) {
+// 1. Update the props to accept an onClick function
+export function PortalCard({ card, onClick }: { card: Card, onClick: () => void }) {
   return (
-    <div className="flex flex-col bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
+    // 2. Change this wrapper to a <button> and add the onClick handler
+    <button
+      onClick={onClick}
+      className="flex flex-col text-left bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+    >
       {/* Card Image */}
       <div className="w-full h-40 bg-gray-200">
         {card.heroImage ? (
@@ -35,13 +39,12 @@ export function PortalCard({ card }: { card: Card }) {
         )}
       </div>
 
-      {/* Card Footer (e.g., a "View" button) */}
-      {/* We can make this a link later */}
+      {/* Card Footer */}
       <div className="p-4 bg-gray-50 border-t border-gray-100">
         <span className="text-sm font-medium text-blue-600">
           View Content
         </span>
       </div>
-    </div>
+    </button>
   );
 }
