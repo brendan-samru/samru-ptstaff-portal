@@ -43,7 +43,7 @@ export function EditorField({
         ],
         toolbar: 'bold italic underline | bullist numlist | link removeformat',
         placeholder: placeholder,
-        content_style: 'body { font-family:Inter,sans-serif; font-size:14px }',
+        content_style: 'body { font-family:Inter,sans-serif; font-size:14px; font-weight:400; }',
         statusbar: false,
       }}
     />
