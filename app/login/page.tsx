@@ -18,8 +18,6 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    const fullEmail = `${username}@samru.local`;
-
     try {
       const userCredential = await signIn(email, password);
       
