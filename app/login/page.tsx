@@ -18,22 +18,20 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    try {
-      const userCredential = await signIn(email, password);
-      
-      // Redirect based on role - this will be handled by the auth state change
-      // but we can add immediate redirect logic here if needed
-      router.push('/portal');
-      
-    } catch (err: any) {
-      console.error('Login error:', err);
-      
+  const fullEmail = `${email}@samru.local`; // You create the variable...
+
+  try {
+    const userCredential = await signIn(fullEmail, password); 
+    router.push('/admin');
+  } catch (error) {
+      console.error('Login error:', error);
       // User-friendly error messages
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+      const authError = error as any;
+      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/wrong-password') {
         setError('Invalid email or password');
-      } else if (err.code === 'auth/user-not-found') {
+      } else if (authError.code === 'auth/user-not-found') {
         setError('No account found with this email');
-      } else if (err.code === 'auth/too-many-requests') {
+      } else if (authError.code === 'auth/too-many-requests') {
         setError('Too many failed attempts. Please try again later');
       } else {
         setError('Unable to sign in. Please try again');
