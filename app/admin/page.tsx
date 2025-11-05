@@ -4,12 +4,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useRouter } from 'next/navigation';
-import { LogOut, Plus, FileText, ChevronsUpDown } from 'lucide-react';
+import { LogOut, Plus, FileText, ChevronsUpDown } from 'lucide-react'; // Added ChevronsUpDown
 
-// Import the new components and functions
 import { ContentList } from '@/components/ContentList'; 
 import { TemplatesModal } from '@/components/TemplatesModal';
-// MODIFICATION: Import listActiveCards instead of listCards
 import { listAllCards, Card } from '@/lib/portal/cards';
 
 function AdminContent() {
@@ -82,8 +80,8 @@ function AdminContent() {
                 Manager View
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
+            
+            {/* --- NEW DEPARTMENT SWITCHER --- */}
             {manageableDepts.length > 1 && (
               <div className="relative">
                 <select
@@ -100,14 +98,11 @@ function AdminContent() {
                 <ChevronsUpDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-gray-500" />
               </div>
             )}
-            {userData?.role === 'super_admin' && (
-              <button
-                onClick={() => router.push('/super')}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
-              >
-                Super Admin
-              </button>
-            )}
+            {/* --- END SWITCHER --- */}
+
+          </div>
+          <div className="flex items-center gap-3">
+            {/* ... (Your other header buttons: Super Admin, View Portal, Sign Out) ... */}
             <button
               onClick={() => router.push('/portal')}
               className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"

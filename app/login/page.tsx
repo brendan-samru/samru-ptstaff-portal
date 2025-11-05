@@ -69,7 +69,7 @@ export default function LoginPage() {
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   required
-                  placeholder="name@samru.ca or jsmith"
+                  placeholder="username@samru.ca or firstinitial.lastname"
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#26A9E0] focus:ring-2 focus:ring-[#26A9E0]/20 transition-all outline-none"
                   disabled={loading}
                 />
