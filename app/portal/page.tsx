@@ -3,41 +3,56 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { ProtectedRoute } from "@/components/ProtectedRoute"; // Import security
 import { LogOut, FileText, Loader2 } from 'lucide-react';
 
-// Import the function to fetch cards and the Card type
 import { listActiveCards, Card } from '@/lib/portal/cards';
-// Import our new component
 import { PortalCard } from '@/components/PortalCard';
 import { PortalSubContentModal } from '@/components/PortalSubContentModal';
 
-export default function PortalPage() {
+// This is the main content of the portal, now secure
+function PortalContent() {
   const { userData, logout } = useAuth();
   const router = useRouter();
-  
-  // Get the department ID from the logged-in user
-  const orgId = userData?.department;
-  const departmentName = userData?.department || 'SAMRU Staff Portal';
+
+  // This will hold the department we need to load
+  // For staff, this comes from their user profile
+  const departmentId = userData?.department;
 
   // State for cards and loading
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
-  // Fetch cards on component mount
+  // This effect handles user roles
   useEffect(() => {
-    // Only fetch if we have an orgId
-    if (!orgId) {
+    if (!userData) return; // Wait for user data to load
+
+    // 1. If user is an admin, they shouldn't be here.
+    //    Send them to the admin page to use the department switcher.
+    if (userData.role === 'admin' || userData.role === 'super_admin') {
+      router.push('/admin');
+      return; // Stop running code
+    }
+
+    // 2. If user is staff but has no department, they can't see anything.
+    if (userData.role === 'staff' && !departmentId) {
       setLoading(false);
+      setCards([]); // Set to empty
       return;
     }
     
-  // --- ADD THIS LINE ---
-  console.log("Attempting to load cards for department:", orgId);
-  // ---
+  }, [userData, departmentId, router]);
 
+  // This effect runs to fetch cards for the staff member's department
+  useEffect(() => {
+    if (!departmentId) {
+      setLoading(false);
+      return; 
+    }
+    
     setLoading(true);
-    listActiveCards(orgId)
+    listActiveCards(departmentId) // Fetch using the staff member's department
       .then(items => {
         setCards(items);
       })
@@ -47,19 +62,16 @@ export default function PortalPage() {
       .finally(() => {
         setLoading(false);
       });
-  }, [orgId]); // Re-run if orgId changes
+  }, [departmentId]); // Re-run if departmentId changes
 
   const handleLogout = async () => {
     await logout();
     router.push('/login');
   };
 
-  // Check if user is an admin to show the admin buttons
-  const isAdmin = userData?.role === 'admin' || userData?.role === 'super_admin';
-
   return (
     <div className="min-h-screen">
-      {/* --- ADD THIS BLOCK --- */}
+      {/* Gradient Background */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-green-100/80 via-blue-100/60 to-white" />
         <div className="absolute top-20 left-10 w-64 h-64 bg-[#8BC53F]/20 rounded-full blur-3xl" />
@@ -67,7 +79,7 @@ export default function PortalPage() {
         <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-[#65953B]/15 rounded-full blur-3xl" />
         <div className="absolute bottom-40 right-1/4 w-72 h-72 bg-[#0D6537]/15 rounded-full blur-3xl" />
       </div>
-      {/* --- END OF BLOCK --- */}
+
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -77,22 +89,9 @@ export default function PortalPage() {
               <a href="/portal" className="px-3 py-1 bg-gray-100 text-gray-900 rounded-md text-sm font-medium">
                 Staff Portal
               </a>
-              {isAdmin && (
-                <a href="/admin" className="px-3 py-1 text-gray-500 hover:bg-gray-100 rounded-md text-sm font-medium">
-                  Manager
-                </a>
-              )}
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            {isAdmin && (
-              <button 
-                onClick={() => router.push('/admin')} 
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600"
-              >
-                Admin Dashboard
-              </button>
-            )}
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
@@ -118,7 +117,7 @@ export default function PortalPage() {
           {loading && (
             <div className="text-center py-16 text-gray-500 flex items-center justify-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <p>Loading content...</p>
+              <p>Loading...</p>
             </div>
           )}
 
@@ -127,20 +126,10 @@ export default function PortalPage() {
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p className="text-lg font-medium">No content found</p>
               <p>There are no items available for this department.</p>
-              {isAdmin && (
-                <p className="mt-4">
-                  Go to the{' '}
-                  <a href="/admin" className="text-blue-500 font-medium hover:underline">
-                    Admin Dashboard
-                  </a>{' '}
-                  to publish a card.
-                </p>
-              )}
             </div>
           )}
 
           {!loading && cards.length > 0 && (
-            /* This is the 4-column grid you asked for */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {cards.map(card => (
                 <PortalCard 
@@ -153,15 +142,27 @@ export default function PortalPage() {
           )}
         </div>
       </div>
-      {/* --- ADD THIS CODE --- */}
-      {/* This renders the modal and uses the 'selectedCard' state */}
-      <PortalSubContentModal
-        open={!!selectedCard}
-        onClose={() => setSelectedCard(null)}
-        card={selectedCard}
-        orgId={orgId!}
-      />
-      {/* --- END OF NEW CODE --- */}
+
+      {/* Modal (only renders if departmentId exists) */}
+      {departmentId && (
+        <PortalSubContentModal
+          open={!!selectedCard}
+          onClose={() => setSelectedCard(null)}
+          card={selectedCard}
+          orgId={departmentId}
+        />
+      )}
     </div>
+  );
+}
+
+
+// This is the new page export that wraps our content in security
+export default function PortalPage() {
+  return (
+    // This will require a user to be logged in to see this page at all
+    <ProtectedRoute>
+      <PortalContent />
+    </ProtectedRoute>
   );
 }

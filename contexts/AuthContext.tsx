@@ -19,7 +19,7 @@ export interface UserData {
   role: 'staff' | 'admin' | 'super_admin';
   displayName?: string;
   department?: string; // For admins - ties them to their portal
-  departments?: string[]; // <-- ADD THIS NEW LINE
+  departments?: string[]; // For multi-department admins
   createdAt?: Date;
   lastLogin?: Date;
 }
