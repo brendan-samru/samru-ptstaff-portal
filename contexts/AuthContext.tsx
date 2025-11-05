@@ -15,10 +15,11 @@ export type UserRole = 'super_admin' | 'admin' | 'user';
 
 export interface UserData {
   uid: string;
-  email: string;
-  role: UserRole;
+  email: string | null;
+  role: 'staff' | 'admin' | 'super_admin';
   displayName?: string;
   department?: string; // For admins - ties them to their portal
+  departments?: string[]; // <-- ADD THIS NEW LINE
   createdAt?: Date;
   lastLogin?: Date;
 }
@@ -64,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: data.role,
           displayName: data.displayName,
           department: data.department,
+          departments: data.departments,
           createdAt: data.createdAt?.toDate(),
           lastLogin: data.lastLogin?.toDate(),
         };
@@ -109,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     isSuperAdmin: userData?.role === 'super_admin',
     isAdmin: userData?.role === 'admin',
-    isUser: userData?.role === 'user',
+    isUser: userData?.role === 'staff',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
