@@ -81,7 +81,10 @@ export function TemplatesModal({
                   {busyId === t.id ? "Creating..." : (t.title || "Untitled")}
                 </div>
                 {t.description && (
-                  <div className="text-sm text-gray-600 line-clamp-2">{t.description}</div>
+                  <div 
+                    className="text-sm text-gray-600 line-clamp-2" 
+                    dangerouslySetInnerHTML={{ __html: t.description }} 
+                  />
                 )}
               </div>
             </button>
