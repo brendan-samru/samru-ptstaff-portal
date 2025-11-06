@@ -3,6 +3,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
   User,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
@@ -10,6 +13,11 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+
+async function signInWithPersistence(email: string, password: string, remember: boolean) {
+  await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+  return signInWithEmailAndPassword(auth, email, password);
+}
 
 export type UserRole = 'super_admin' | 'admin' | 'user' | 'staff'; // Ensure 'staff' is a valid role
 
