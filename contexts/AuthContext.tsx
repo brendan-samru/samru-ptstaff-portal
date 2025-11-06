@@ -11,15 +11,15 @@ import {
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
-export type UserRole = 'super_admin' | 'admin' | 'user';
+export type UserRole = 'super_admin' | 'admin' | 'user' | 'staff'; // Added staff
 
 export interface UserData {
   uid: string;
-  email: string | null;
-  role: 'staff' | 'admin' | 'super_admin';
+  email: string;
+  role: UserRole;
   displayName?: string;
-  department?: string; // For admins - ties them to their portal
-  departments?: string[]; // For multi-department admins
+  department?: string; // For single-department users
+  departments?: string[]; // <-- ADDED THIS FOR MULTI-DEPARTMENT USERS
   createdAt?: Date;
   lastLogin?: Date;
 }
@@ -62,10 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return {
           uid,
           email: data.email,
-          role: data.role,
+          role: data.role || 'staff', // Default to staff
           displayName: data.displayName,
           department: data.department,
-          departments: data.departments,
+          departments: data.departments, // <-- ADDED THIS
           createdAt: data.createdAt?.toDate(),
           lastLogin: data.lastLogin?.toDate(),
         };
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     isSuperAdmin: userData?.role === 'super_admin',
     isAdmin: userData?.role === 'admin',
-    isUser: userData?.role === 'staff',
+    isUser: userData?.role === 'user',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
