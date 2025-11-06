@@ -11,7 +11,7 @@ import {
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
-export type UserRole = 'super_admin' | 'admin' | 'user' | 'staff'; // Added staff
+export type UserRole = 'super_admin' | 'admin' | 'user' | 'staff'; // Ensure 'staff' is a valid role
 
 export interface UserData {
   uid: string;
@@ -19,7 +19,7 @@ export interface UserData {
   role: UserRole;
   displayName?: string;
   department?: string; // For single-department users
-  departments?: string[]; // <-- ADDED THIS FOR MULTI-DEPARTMENT USERS
+  departments?: string[]; // <-- THIS IS THE MISSING LINE
   createdAt?: Date;
   lastLogin?: Date;
 }
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: data.role || 'staff', // Default to staff
           displayName: data.displayName,
           department: data.department,
-          departments: data.departments, // <-- ADDED THIS
+          departments: data.departments, // <-- THIS IS THE MISSING LINE
           createdAt: data.createdAt?.toDate(),
           lastLogin: data.lastLogin?.toDate(),
         };
