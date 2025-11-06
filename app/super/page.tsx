@@ -500,7 +500,7 @@ function SuperAdminContent() {
                                 )}
                                 {template.description && (
                                   <div 
-                                    className="text-sm text-gray-600 mb-3" 
+                                    className="text-sm text-gray-600 mb-3 prose" 
                                     dangerouslySetInnerHTML={{ __html: template.description }} 
                                   />
                                 )}
