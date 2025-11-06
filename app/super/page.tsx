@@ -8,8 +8,9 @@ import { setUserRole } from "@/lib/portal/roles";
 import { FileUpload } from "@/components/FileUpload";
 import { listTemplates, createTemplate, updateTemplate, deleteTemplate, CardTemplate } from "@/lib/portal/templates";
 // MODIFICATION: Import storage functions
-import { storage } from '@/lib/firebase/client'; // Make sure this path is correct
+import { storage, db } from '@/lib/firebase/client'; // Make sure this path is correct
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, getDocs, query, where } from 'firebase/firestore'; // <-- ADD THIS LINE
 import { 
   Crown, 
   FolderPlus, 
@@ -22,6 +23,7 @@ import {
   Plus,
   TrendingUp,
   Eye,
+  Loader2,
   Download,
   LogOut,
   X
@@ -77,10 +79,37 @@ function SuperAdminContent() {
     }
   };
 
-  // Load templates on mount
   useEffect(() => { 
     loadTemplates(); 
+    loadAnalytics(); // <-- ADD THIS
   }, [orgId]);
+
+  // Function to load analytics
+  const loadAnalytics = async () => {
+  setLoadingAnalytics(true);
+  try {
+    // 1. Query all 'cardView' events
+    const viewQuery = query(collection(db, 'analyticsEvents'), where("type", "==", "cardView"));
+    const viewSnap = await getDocs(viewQuery);
+    setTotalViews(viewSnap.size);
+
+    // 2. Query all 'fileDownload' events
+    const downloadQuery = query(collection(db, 'analyticsEvents'), where("type", "==", "fileDownload"));
+    const downloadSnap = await getDocs(downloadQuery);
+    setTotalDownloads(downloadSnap.size);
+
+    // 3. Query all 'admin' users
+    const managerQuery = query(collection(db, 'users'), where("role", "==", "admin"));
+    const managerSnap = await getDocs(managerQuery);
+    setTotalManagers(managerSnap.size);
+
+  } catch (err) {
+    console.error("Failed to load analytics:", err);
+  } finally {
+    setLoadingAnalytics(false);
+  }
+};
+
 
   // Reusable handler for canceling/closing the form
   const handleCancel = () => {
@@ -97,29 +126,11 @@ function SuperAdminContent() {
     console.log('User added, refreshing data...');
   };
 
-  // Mock analytics data - replace with Firebase queries
-  useEffect(() => {
-    setAnalytics([
-      {
-        managerId: 'mgr1',
-        managerName: 'West Gate Social Manager',
-        department: 'West Gate Social',
-        totalViews: 1245,
-        totalDownloads: 432,
-        uniqueUsers: 87,
-        lastActivity: new Date()
-      },
-      {
-        managerId: 'mgr2',
-        managerName: 'Perks Manager',
-        department: 'Perks Coffee',
-        totalViews: 892,
-        totalDownloads: 234,
-        uniqueUsers: 54,
-        lastActivity: new Date()
-      },
-    ]);
-  }, []);
+  // Real analytics data - Firebase queries
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+  const [totalManagers, setTotalManagers] = useState(0);
+  const [totalViews, setTotalViews] = useState(0);
+  const [totalDownloads, setTotalDownloads] = useState(0);
 
   const handleLogout = async () => {
     await logout();
@@ -217,7 +228,9 @@ function SuperAdminContent() {
           <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <Users className="w-8 h-8 text-[#8BC53F]" />
-              <span className="text-2xl font-bold text-gray-900">{analytics.length}</span>
+             <span className="text-2xl font-bold text-gray-900">
+                {loadingAnalytics ? <Loader2 className="w-6 h-6 animate-spin" /> : totalManagers}
+             </span>
             </div>
             <div className="text-sm text-gray-600">Active Managers</div>
           </div>
@@ -234,7 +247,7 @@ function SuperAdminContent() {
             <div className="flex items-center justify-between mb-2">
               <Eye className="w-8 h-8 text-[#65953B]" />
               <span className="text-2xl font-bold text-gray-900">
-                {analytics.reduce((sum, a) => sum + a.totalViews, 0)}
+                {loadingAnalytics ? <Loader2 className="w-6 h-6 animate-spin" /> : totalViews}
               </span>
             </div>
             <div className="text-sm text-gray-600">Total Views</div>
@@ -244,7 +257,7 @@ function SuperAdminContent() {
             <div className="flex items-center justify-between mb-2">
               <Download className="w-8 h-8 text-[#0D6537]" />
               <span className="text-2xl font-bold text-gray-900">
-                {analytics.reduce((sum, a) => sum + a.totalDownloads, 0)}
+                {loadingAnalytics ? <Loader2 className="w-6 h-6 animate-spin" /> : totalDownloads}
               </span>
             </div>
             <div className="text-sm text-gray-600">Total Downloads</div>
