@@ -9,7 +9,7 @@ import { LogOut, FileText, Loader2 } from 'lucide-react';
 import { listActiveCards, Card } from '@/lib/portal/cards';
 import { PortalCard } from '@/components/PortalCard';
 import { PortalSubContentModal } from '@/components/PortalSubContentModal';
-// We re-use this component to show the selector
+// Import the selector
 import { DepartmentSelector } from '@/components/DepartmentSelector'; 
 
 function PortalContent() {
@@ -139,7 +139,10 @@ function PortalContent() {
       {/* Gradient Background */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-green-100/80 via-blue-100/60 to-white" />
-        {/* ... (other gradient divs) ... */}
+        <div className="absolute top-20 left-10 w-64 h-64 bg-[#8BC53F]/20 rounded-full blur-3xl" />
+        <div className="absolute top-40 right-20 w-96 h-96 bg-[#26A9E0]/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-[#65953B]/15 rounded-full blur-3xl" />
+        <div className="absolute bottom-40 right-1/4 w-72 h-72 bg-[#0D6537]/15 rounded-full blur-3xl" />
       </div>
 
       {/* Header */}
