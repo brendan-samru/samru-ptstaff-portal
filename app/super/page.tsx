@@ -11,6 +11,7 @@ import { listTemplates, createTemplate, updateTemplate, deleteTemplate, CardTemp
 import { storage, db } from '@/lib/firebase/client'; // Make sure this path is correct
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, getDocs, query, where } from 'firebase/firestore'; // <-- ADD THIS LINE
+import { MediaItem, listMediaLibrary, uploadToMediaLibrary, deleteFromMediaLibrary } from '@/lib/portal/media';
 import { 
   Crown, 
   FolderPlus, 
@@ -24,6 +25,8 @@ import {
   TrendingUp,
   Eye,
   Loader2,
+  Upload,
+  ImageIcon,
   Download,
   LogOut,
   X
@@ -45,7 +48,7 @@ interface PortalAnalytics {
 function SuperAdminContent() {
   const { userData, logout } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'templates' | 'analytics' | 'users'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'analytics' | 'users' | 'media'>('templates');
   const [analytics, setAnalytics] = useState<PortalAnalytics[]>([]);
   const [showAddTemplate, setShowAddTemplate] = useState(false);
 
@@ -60,6 +63,11 @@ function SuperAdminContent() {
   const [newHero, setNewHero] = useState<string | null>(null); // This is ONLY for the <img> preview src
   const [newFile, setNewFile] = useState<File | null>(null); // MODIFICATION: Store the actual file object
   const [editing, setEditing] = useState<CardTemplate | null>(null);
+
+  // --- NEW: Media Library State ---
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [loadingMedia, setLoadingMedia] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
 
   const quillModules = {
     toolbar: [
@@ -82,6 +90,19 @@ function SuperAdminContent() {
   useEffect(() => { 
     loadTemplates(); 
     loadAnalytics(); // <-- ADD THIS
+  }, [orgId]);
+
+  // --- NEW: Function to load media ---
+  const loadMedia = async () => {
+    setLoadingMedia(true);
+    listMediaLibrary().then(setMediaItems).finally(() => setLoadingMedia(false));
+  };
+
+  // Load data on mount
+  useEffect(() => { 
+    loadTemplates(); 
+    loadAnalytics(); // This is your function from before
+    loadMedia(); // <-- NEW
   }, [orgId]);
 
   // Function to load analytics
@@ -170,6 +191,39 @@ function SuperAdminContent() {
     }
   };
 
+
+  // --- NEW: Handler for uploading to media library ---
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      await uploadToMediaLibrary(file);
+      await loadMedia(); // Refresh the media list
+    } catch (error) {
+      console.error("Media upload failed:", error);
+      alert("Media upload failed. Please try again.");
+    } finally {
+      setIsUploading(false);
+      // Clear the file input
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  // --- NEW: Handler for deleting from media library ---
+  const handleDeleteMedia = async (item: MediaItem) => {
+    if (!confirm(`Are you sure you want to delete "${item.name}"? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      await deleteFromMediaLibrary(item);
+      await loadMedia(); // Refresh the media list
+    } catch (error) {
+      console.error("Error deleting media:", error);
+      alert("Failed to delete media item.");
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -279,6 +333,21 @@ function SuperAdminContent() {
                 <FolderPlus className="w-4 h-4" />
                 Card Templates
               </button>
+
+              {/* --- NEW: Media Library Tab Button --- */}
+              <button
+                onClick={() => setActiveTab('media')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  activeTab === 'media'
+                    ? 'bg-[#26A9E0] text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <ImageIcon className="w-4 h-4" />
+                Media Library
+              </button>
+              {/* --- */}
+
               <button
                 onClick={() => setActiveTab('analytics')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
@@ -554,6 +623,72 @@ function SuperAdminContent() {
                   )}
               </div>
             )}
+
+
+            {/* --- NEW: Media Library Tab Content --- */}
+            {activeTab === 'media' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Media Library</h2>
+                  <label 
+                    className={`flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    {isUploading ? "Uploading..." : "Upload Image"}
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleMediaUpload}
+                      disabled={isUploading}
+                    />
+                  </label>
+                </div>
+
+                {loadingMedia && (
+                  <div className="text-center py-12 text-gray-500">
+                    <Loader2 className="w-8 h-8 mx-auto animate-spin" />
+                    <p>Loading media...</p>
+                  </div>
+                )}
+                
+                {!loadingMedia && mediaItems.length === 0 && (
+                  <div className="text-center py-12 text-gray-500">
+                    <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No media uploaded yet. Click "Upload Image" to get started.</p>
+                  </div>
+                )}
+
+                {!loadingMedia && mediaItems.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                    {mediaItems.map(item => (
+                      <div key={item.id} className="relative group border border-gray-200 rounded-lg overflow-hidden" style={{ aspectRatio: '1/1' }}>
+                        <img 
+                          src={item.url} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button 
+                            onClick={() => handleDeleteMedia(item)}
+                            className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            title="Delete Image"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50">
+                          <p className="text-xs text-white truncate" title={item.name}>
+                            {item.name}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* --- END NEW TAB --- */}
 
             {/* Analytics Tab */}
             {activeTab === 'analytics' && (
