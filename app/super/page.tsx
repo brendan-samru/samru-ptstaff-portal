@@ -194,12 +194,14 @@ function SuperAdminContent() {
 
   // --- NEW: Handler for uploading to media library ---
   const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files; // <-- Plural 'files'
+  if (!files || files.length === 0) return;
 
     setIsUploading(true);
     try {
-      await uploadToMediaLibrary(file);
+      for (const file of files) {
+        await uploadToMediaLibrary(file);
+      }
       await loadMedia(); // Refresh the media list
     } catch (error) {
       console.error("Media upload failed:", error);
@@ -641,6 +643,7 @@ function SuperAdminContent() {
                       accept="image/*"
                       onChange={handleMediaUpload}
                       disabled={isUploading}
+                      multiple // <-- ADD THIS
                     />
                   </label>
                 </div>
